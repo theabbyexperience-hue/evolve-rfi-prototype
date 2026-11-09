@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Owner RFI — Prototype + Design Summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Evolve tokens, read from start.evolve.com */
+  --ink:#202020;            /* off-black */
+  --muted:#606060;          /* gray-700 */
+  --line:#d9d9d9;           /* gray-200 */
+  --bg:#f8f6f4;             /* warm-gray-100 */
+  --brand:#a848bd;          /* mountain-500 */
+  --brand-ink:#783188;      /* mountain-600 */
+  --brand-soft:#f8f6f4;     /* selected card = warm-gray-100 */
+  --brand-tint:#f4e9f7;     /* mountain-100 */
+  --ring:#d7ace1;           /* mountain-300 */
+  --ok-bg:#e4efe7;          /* success-surface */
+  --ok-ink:#1f8a5f;         /* success */
+  --err:#ca2608;            /* error */
+  --track:#b7eff5;          /* island-200 */
+  --sky:#e4f9fb;            /* island-100 */
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Nunito,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.banner{text-align:center;font-size:13px;color:var(--muted);padding:14px 16px 0}
+.banner b{color:var(--ink);font-weight:600}
+.stage{display:flex;gap:28px;justify-content:center;align-items:flex-start;padding:18px 24px 40px}
+
+/* Phone */
+.phone{width:390px;height:800px;background:#fff;border-radius:30px;border:1px solid var(--line);box-shadow:0 20px 50px rgba(29,43,54,.12);overflow:hidden;display:flex;flex-direction:column;flex:none}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;padding:10px 10px 6px}
+.top-l{display:flex;align-items:center;gap:2px;justify-self:start;min-width:0}
+#backBtn[hidden]{display:none}
+.top-l .tag{margin-left:6px}
+.top>#notesBtn{justify-self:end}
+.iconbtn{width:44px;height:44px;border:0;background:none;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.iconbtn:hover{background:#f1f3f5}
+.iconbtn[hidden]{visibility:hidden;display:grid}
+.wordmark{justify-self:center;font-family:Montserrat,sans-serif;font-weight:700;font-size:21px;letter-spacing:.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.wordmark .logo{width:27px;height:28px;margin-right:-2px}
+@media (max-width:420px){.wordmark{font-size:19px;gap:6px}.wordmark .logo{width:24px;height:25px}.tag{font-size:9px;padding:3px 6px}#backBtn{width:36px}.top-l .tag{margin-left:2px}.notes-toggle{padding:0 10px}}
+.tag{font-family:Nunito,sans-serif;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:#f0f0f0;color:var(--muted);border-radius:99px;padding:3px 7px}
+.notes-toggle{display:none;white-space:nowrap;align-items:center;min-height:36px;padding:0 11px;border-radius:99px;border:1px solid var(--brand-tint);background:#fdf5ff;color:var(--brand-ink);font-weight:700;font-size:13px;cursor:pointer}
+.scen{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 6px}
+.scen button{min-height:44px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700;line-height:1.25;cursor:pointer;color:var(--ink)}
+.scen button small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}
+.scen button:hover{border-color:var(--brand-ink);background:var(--brand-soft)}
+.sq p{font-size:14px;line-height:1.5;margin:0 0 12px;color:var(--ink)}
+.sq-list{margin:0 0 12px;padding-left:18px}
+.sq-list li{font-size:14px;line-height:1.5;margin-bottom:6px}
+.sq p.q{font-family:Montserrat,sans-serif;font-weight:700;font-size:15px;margin:0 0 4px}
+.scen-tip{font-size:12.5px;color:var(--muted);line-height:1.45;margin:6px 0 0}
+.prog{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:4px 20px 10px;border-bottom:1px solid #f0f0f0}
+.seg .bar{height:6px;border-radius:4px;background:var(--track);overflow:hidden}
+.seg .bar i{display:block;height:100%;background:var(--ink);border-radius:0 4px 4px 0;width:0;transition:width .35s ease}
+.seg span{display:block;font-size:11px;color:var(--muted);margin-top:5px;font-weight:600}
+.seg.on span{color:var(--ink)}
+.body{flex:1;overflow:auto;display:flex;flex-direction:column}
+.hero{position:relative;height:112px;flex:none;background:var(--sky);overflow:hidden}
+.hero svg{position:absolute;inset:0;width:100%;height:100%}
+.hero .cap{position:absolute;left:16px;top:16px;background:rgba(32,32,32,.55);color:#fff;font-weight:700;font-size:14px;line-height:20px;border-radius:8px;padding:8px 12px}
+.screen{flex:1;padding:28px 20px 20px;display:flex;flex-direction:column;background:#fff;position:relative}
+.trust{flex:none;display:flex;justify-content:center;flex-wrap:wrap;gap:5px;margin:0;padding:12px 10px 14px;font-size:12px;font-weight:700;white-space:nowrap;letter-spacing:-.1px;color:var(--brand-ink);background:#fdf5ff;border-top:1px solid var(--brand-tint)}
+.trust span[aria-hidden]{color:var(--ring)}
+.trust a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:var(--ring)}
+.trust a:hover{text-decoration-color:currentColor}
+.trust{position:sticky;bottom:0;z-index:5}
+.trust[hidden]{display:none}
+.screen:focus{outline:none}
+h1{font-family:Montserrat,sans-serif;font-size:23px;line-height:1.3;margin:0 0 8px;font-weight:600;letter-spacing:-.2px}
+h1:focus{outline:none}
+.sub{color:var(--muted);font-size:15px;line-height:1.45;margin:0 0 20px}
+.spacer{flex:1;min-height:16px}
+
+/* Options */
+.opt{display:flex;align-items:center;gap:20px;width:100%;min-height:56px;padding:16px 20px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;cursor:pointer;margin-bottom:10px;font-size:16px;transition:border-color .15s,background .15s}
+.opt:hover,.opt[aria-pressed="true"]{border-color:var(--brand-ink);background:var(--brand-soft);color:var(--brand-ink)}
+.opt[aria-pressed="true"]{font-weight:700}
+.opt:active{background:#fcfbfa}
+.opt svg{flex:none;color:var(--ink)}
+.opt:hover svg,.opt[aria-pressed="true"] svg{color:var(--brand-ink)}
+.opt small{display:block;color:var(--muted);font-size:14px;font-weight:400;margin-top:2px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.chip{min-height:56px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font-size:17px;font-weight:600}
+.chip:hover,.chip[aria-pressed="true"]{border-color:var(--brand-ink);background:var(--brand-soft);color:var(--brand-ink)}
+.chip[aria-pressed="true"]{font-weight:700}
+.chips.sm .chip{min-height:48px;font-size:14px}
+.chips.two{grid-template-columns:1fr 1fr}
+
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;border:0;border-radius:12px;background:var(--brand);color:#fff;font-family:Montserrat,sans-serif;font-weight:700;font-size:16px;cursor:pointer}
+.btn:hover{background:var(--brand-ink)}
+.btn.ghost{background:#fff;color:var(--brand-ink);border:1px solid var(--line);margin-top:10px}
+.btn.ghost:hover{border-color:var(--brand)}
+.link{background:none;border:0;color:var(--brand-ink);text-decoration:underline;text-underline-offset:3px;padding:10px 0;cursor:pointer;font-size:15px}
+
+.field{margin-bottom:14px;position:relative}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.field input{width:100%;min-height:50px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:16px;font-family:inherit;color:var(--ink);background:#fff}
+.field input:focus{outline:none;border-color:var(--brand-ink);box-shadow:0 0 0 3px var(--ring)}
+.field input[aria-invalid="true"]{border-color:var(--err)}
+.field .err{color:var(--err);font-size:13px;margin-top:5px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+.proof{display:flex;gap:9px;align-items:flex-start;background:var(--ok-bg);color:var(--ink);border-radius:8px;padding:12px;font-size:14px;line-height:1.4;margin-bottom:16px}
+.proof svg{flex:none;margin-top:1px;color:var(--ok-ink)}
+.fine{display:flex;gap:8px;align-items:flex-start;color:var(--muted);font-size:13px;line-height:1.45;margin:12px 0 0}
+.fine svg{flex:none;margin-top:1px}
+
+/* Address */
+.ac{position:relative}
+.ac .pin{position:absolute;left:13px;top:15px;color:var(--muted);pointer-events:none}
+.ac input{padding-left:40px}
+.listbox{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.1);margin:0;padding:4px;list-style:none;z-index:5;max-height:260px;overflow:auto}
+.listbox li{padding:11px 12px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1.3}
+.listbox li small{display:block;color:var(--muted);font-size:13px}
+.listbox li[aria-selected="true"],.listbox li:hover{background:var(--brand-soft);color:var(--brand-ink)}
+.card{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:16px}
+.map{height:118px;background:#e8eee6;position:relative}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.card .addr{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card .addr b{display:block;font-size:15px}
+.card .addr span{font-size:13px;color:var(--muted)}
+
+/* Estimate */
+.est{border:1px solid var(--line);border-radius:12px;background:#fcfbfa;padding:16px;margin-bottom:22px}
+.est .lbl{font-size:13px;color:var(--muted)}
+.range{font-family:Montserrat,sans-serif;font-size:31px;font-weight:700;margin:4px 0 2px;letter-spacing:-.3px}
+.range small{font-size:15px;font-weight:600;color:var(--muted)}
+.locked{margin-top:14px;border-top:1px solid #eceff1;padding-top:10px}
+.locked div{display:flex;justify-content:space-between;font-size:14px;padding:6px 0;color:var(--muted)}
+.locked b{filter:blur(5px);color:var(--ink);user-select:none}
+.locked .lockline{justify-content:flex-start;padding-top:8px}
+.lockline{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--brand-ink);font-weight:700;margin-top:6px}
+h2.sec{font-size:17px;font-family:Montserrat,sans-serif;font-weight:600;margin:0 0 12px}
+
+/* Phone input */
+.tel{display:flex;gap:8px}
+.tel .cc{flex:none;width:64px;min-height:50px;border:1px solid var(--line);border-radius:12px;display:grid;place-items:center;font-size:16px;color:var(--muted)}
+.tel input{flex:1}
+.lbl-sm{font-size:14px;font-weight:600;margin:4px 0 8px}
+.lbl-sm span{color:var(--muted);font-weight:400}
+
+/* Done / exits */
+.check{width:64px;height:64px;border-radius:48% 52% 45% 55% / 55% 47% 53% 45%;background:#353b1f;color:#c3d145;display:grid;place-items:center;margin:8px 0 18px}
+.check svg{stroke-width:3.2}
+.steps{list-style:none;margin:0 0 20px;padding:0;counter-reset:s}
+.steps li{position:relative;padding:0 0 16px 40px;font-size:15px;line-height:1.4;counter-increment:s}
+.steps li::before{content:counter(s);position:absolute;left:0;top:-2px;width:26px;height:26px;border-radius:50%;background:var(--brand-tint);color:var(--brand-ink);display:grid;place-items:center;font-size:13px;font-weight:600}
+.steps li small{display:block;color:var(--muted);font-size:13px}
+
+/* Notes panel */
+.notes{width:370px;flex:none;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px;position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto}
+.notes h2{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+.notes h3{font-family:Montserrat,sans-serif;font-size:17px;margin:0 0 10px;line-height:1.3}
+.notes ul{margin:0 0 12px;padding-left:18px}
+.notes li{font-size:14px;line-height:1.5;margin-bottom:6px}
+.lever{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:600;border-radius:99px;padding:4px 10px;margin:0 6px 6px 0;background:#eef1f3;color:var(--ink)}
+.lever.hot{background:#fff5ed;color:#891404}
+.lever.q{background:var(--ok-bg);color:var(--ok-ink)}
+.divider{height:1px;background:#eceff1;margin:18px 0}
+.prof{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px;margin:0}
+.prof dt{color:var(--muted)}
+.prof dd{margin:0;text-align:right;font-weight:500;overflow-wrap:anywhere}
+.prof dd.empty{color:#9aa5ad;font-weight:400}
+.meter{height:8px;background:#eceff1;border-radius:8px;overflow:hidden;margin:14px 0 6px}
+.meter i{display:block;height:100%;background:var(--brand);transition:width .35s}
+.scoreline{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.lane{display:inline-block;margin-top:10px;font-size:13px;font-weight:600;border-radius:8px;padding:8px 10px;background:#eef1f3;line-height:1.4}
+.lane.fast{background:var(--brand-tint);color:var(--brand-ink)}
+.lane.port{background:#e8eefc;color:#22408a}
+.lane.exp{background:var(--ok-bg);color:var(--ok-ink)}
+.lane.out{background:#fff5ed;color:#891404}
+.restart{margin-top:16px;width:100%;min-height:42px;border:1.5px solid var(--line);background:#fff;border-radius:10px;cursor:pointer;font-weight:500}
+.restart:hover{border-color:var(--brand)}
+.close-notes{display:none}
+
+/* Listed path */
+.linkrow{display:flex;gap:6px;align-items:center}
+.linkrow input{flex:1}
+.addlink{display:flex;align-items:center;gap:8px;background:none;border:1px dashed var(--line);border-radius:12px;width:100%;min-height:48px;justify-content:center;cursor:pointer;color:var(--brand-ink);font-weight:700;margin-bottom:14px}
+.addlink:hover{border-color:var(--brand-ink);background:var(--brand-soft)}
+.samples{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 16px;font-size:12.5px;color:var(--muted)}
+.sample{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 10px;font-size:12.5px;cursor:pointer}
+.sample:hover{border-color:var(--brand-ink);color:var(--brand-ink)}
+.load{list-style:none;margin:8px 0 0;padding:0}
+.load li{position:relative;padding:12px 0 12px 36px;font-size:16px;color:var(--muted);border-bottom:1px solid #f0f0f0;animation:done-row .01s linear forwards;animation-delay:calc(var(--d) + .55s)}
+.load li::before{content:"";position:absolute;left:0;top:12px;width:20px;height:20px;border-radius:50%;border:2px solid var(--line);border-top-color:#353b1f;animation:spin .8s linear infinite}
+.load li::after{content:"";position:absolute;left:-1px;top:10px;width:26px;height:26px;border-radius:48% 52% 45% 55% / 55% 47% 53% 45%;background:#353b1f url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c3d145' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center/15px no-repeat;opacity:0;animation:pop .2s ease forwards;animation-delay:calc(var(--d) + .55s)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pop{to{opacity:1}}
+@keyframes done-row{to{color:var(--ink)}}
+.screen.flat{border-radius:0;margin-top:0}
+.lcard{display:flex;gap:14px;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.thumb{flex:none;width:72px;height:72px;border-radius:8px;background:var(--sky);color:#0f6771;display:grid;place-items:center}
+.lmeta{display:flex;flex-direction:column;gap:2px;font-size:13.5px;color:var(--muted);min-width:0}
+.lmeta b{color:var(--ink);font-size:15px;line-height:1.3}
+.plat{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.3px;background:#f0f0f0;color:var(--ink);border-radius:6px;padding:2px 7px;margin-bottom:2px}
+.rate{display:flex;align-items:center;gap:4px}
+.rate svg{color:var(--ink)}
+.lcard.off{opacity:.6}
+.incl{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;min-height:32px}
+.incl input{width:20px;height:20px;accent-color:var(--brand-ink);margin:0}
+.noteline{margin-top:6px;font-size:13px;color:#6a5405}
+.pref{border-top:1px solid #f0f0f0;padding-top:16px}
+.chip.sm1{min-height:48px;font-size:15px}
+.howto{margin:-6px 0 14px;font-size:14px}
+.howto summary{cursor:pointer;color:var(--brand-ink);font-weight:700;padding:6px 0}
+.howto ol{margin:6px 0 4px;padding-left:20px;color:var(--ink);line-height:1.5}
+.howto li{margin-bottom:6px}
+.pmlist{border:1px solid var(--line);border-radius:12px;padding:4px 12px;margin-bottom:12px}
+.pmrow{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #f0f0f0;cursor:pointer}
+.pmrow:last-of-type{border-bottom:0}
+.pmrow input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--brand-ink);flex:none}
+.pmrow b{display:block;font-size:15px}
+.pmrow small{display:block;font-size:13px;color:var(--muted)}
+.pmrow em{font-style:normal;color:var(--brand-ink);font-weight:700}
+.inline-link{background:none;border:0;padding:0;font:inherit;font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.welcome-slot{padding:4px 20px 14px;flex:none}
+.welcome-slot[hidden]{display:none}
+.welcome{display:block;width:100%;height:auto;border-radius:16px}
+.welcome.photo{position:relative;height:188px;overflow:hidden;background:#3a3f3a}
+.welcome.photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:58% 62%}
+.tagline{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:16px 18px;background:linear-gradient(90deg,rgba(18,18,18,.72) 0%,rgba(18,18,18,.38) 42%,rgba(18,18,18,0) 62%)}
+.tagline b{font-family:Montserrat,sans-serif;font-weight:700;font-size:26px;line-height:1.08;letter-spacing:-.4px;color:#fff}
+.tagline b.earn{color:#e6c3ee}
+.tagline span{margin-top:6px;font-size:13px;font-weight:700;color:#fff;max-width:150px;line-height:1.3}
+.grp{margin-bottom:8px}
+.grp-lbl{font-size:13px;font-weight:700;color:var(--muted);margin:6px 0 8px}
+.link.small{font-size:14px;padding:2px 0 14px}
+.proof.warn{background:#fdf7e2}
+.proof.warn svg{color:#6a5405}
+.est.yes .range{margin-top:6px}
+.cmp{margin-top:12px;border-top:1px solid #eceae6}
+.cmp div,.how div{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:8px 0;color:var(--muted)}
+.cmp span{display:flex;align-items:center;gap:6px}
+.cmp b,.how b{color:var(--ink);text-align:right}
+.how{margin-top:6px;border-top:1px solid #eceae6;padding-top:8px}
+.how summary{cursor:pointer;color:var(--brand-ink);font-weight:700;font-size:14px;padding:4px 0}
+.how div{font-size:13px;padding:5px 0}
+.how p{font-size:12.5px;color:var(--muted);margin:6px 0 0;line-height:1.45}
+.svc{list-style:none;padding:0;margin:0 0 14px}
+.svc li{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.svc li:last-child{border-bottom:0}
+.svc svg{flex:none;color:var(--brand-ink);margin-top:2px}
+.svc b{display:block;font-size:15px}
+.svc span{display:block;font-size:13.5px;color:var(--muted);line-height:1.4}
+.feebox{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:28px}
+.feebox div{background:var(--brand-tint);border-radius:12px;padding:12px}
+.feebox b{display:block;font-family:Montserrat,sans-serif;font-size:16px;color:var(--brand-ink)}
+.feebox span{font-size:13px;color:var(--ink);line-height:1.35;display:block;margin-top:2px}
+.capture{border-top:1px solid var(--line);padding-top:22px;scroll-margin-top:8px}
+.sticky{position:sticky;bottom:0;margin:12px -20px -32px;padding:12px 20px 16px;background:linear-gradient(rgba(255,255,255,0),#fff 30%);transition:opacity .2s}
+.sticky.gone{opacity:0;pointer-events:none}
+.hero[hidden]{display:none}
+
+@media all{
+  .banner{display:none}
+  .stage{padding:0;display:block}
+  .phone{width:100%;height:100vh;height:100dvh;border-radius:0;border:0;box-shadow:none}
+  .notes-toggle{display:inline-flex}
+  .notes{display:none;position:fixed;left:0;right:0;bottom:0;width:auto;max-height:78vh;border-radius:18px 18px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.18);z-index:20;top:auto}
+  .notes.open{display:block}
+  .close-notes{display:block;margin-left:auto}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:19}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Mobile-only build: keep the phone layout at every width */
+body{background:#f8f6f4}
+.phone{max-width:430px;margin:0 auto;box-shadow:0 0 0 1px var(--line)}
+.notes{left:50%!important;right:auto!important;width:min(100%,430px)!important;transform:translateX(-50%)}
+
+/* iPhone-style frame (shown only when the screen is wider than a phone) */
+.statusbar,.homebar{display:none}
+.device{position:relative;flex:none}
+@media (min-width:520px){
+  .device::before{content:"";position:absolute;left:-4px;top:150px;width:4px;height:30px;border-radius:2px 0 0 2px;background:#3a3a3e;box-shadow:0 52px 0 #3a3a3e,0 52px 0 0 #3a3a3e,0 112px 0 #3a3a3e}
+  .device::after{content:"";position:absolute;right:-4px;top:220px;width:4px;height:90px;border-radius:0 2px 2px 0;background:#3a3a3e}
+  .phone{width:416px;height:min(870px,calc(100vh - 70px));border:13px solid #121214;border-radius:62px;box-shadow:0 0 0 3px #4a4a4e,0 24px 60px rgba(29,43,54,.22);position:relative;margin:0}
+  .phone::before{content:"";position:absolute;top:10px;left:50%;transform:translateX(-50%);width:118px;height:34px;border-radius:20px;background:#000;z-index:40}
+  .statusbar{display:flex;flex:none;height:50px;align-items:center;justify-content:space-between;padding:4px 30px 0 40px;color:#202020;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;font-weight:600;font-size:15px}
+  .statusbar .sb-icons{display:flex;gap:6px;align-items:center}
+  .statusbar svg{fill:currentColor}
+  .homebar{display:grid;place-items:center;flex:none;height:26px;background:#fff}
+  .homebar i{display:block;width:134px;height:5px;border-radius:3px;background:#202020}
+  .top{padding-top:2px}
+  body{background:#f8f6f4}
+  .stage{padding:24px 0}
+  .device{width:416px;margin:0 auto}
+  .phone{max-width:none;box-shadow:0 0 0 3px #4a4a4e,0 24px 60px rgba(29,43,54,.22)}
+}
+
+/* ---------- Design summary page ---------- */
+.summary{position:fixed;inset:0;z-index:60;overflow:auto;background:#f8f6f4;color:var(--ink);-webkit-overflow-scrolling:touch}
+.summary[hidden]{display:none}
+.sum-wrap{max-width:1120px;margin:0 auto;padding:32px 24px 56px}
+.sum-top{display:flex;gap:24px;align-items:flex-start;justify-content:space-between;margin-bottom:24px}
+.sum-eyebrow{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--brand-ink);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.summary h1{font-family:Montserrat,sans-serif;font-size:32px;line-height:1.2;margin:0 0 10px;letter-spacing:-.4px}
+.sum-lead{font-size:15.5px;line-height:1.55;color:var(--muted);margin:0;max-width:760px}
+.sum-lead b{color:var(--ink)}
+.sum-back{width:auto;padding:0 22px;flex:none;white-space:nowrap}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sum-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 24px 14px;position:relative}
+.sum-num{display:grid;place-items:center;width:32px;height:32px;border-radius:48% 52% 45% 55% / 55% 47% 53% 45%;background:#353b1f;color:#c3d145;font-weight:800;font-family:Montserrat,sans-serif;margin-bottom:10px}
+.sum-card h2{font-family:Montserrat,sans-serif;font-size:19px;margin:0 0 10px;line-height:1.3}
+.sum-card h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:14px 0 6px}
+.sum-card ul{margin:0 0 10px;padding-left:18px}
+.sum-card li{font-size:14.5px;line-height:1.5;margin-bottom:7px}
+.sum-card li b{color:var(--ink)}
+.sum-card.wide{grid-column:1/-1}
+.sum-cols{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.sum-cols h3{margin-top:0}
+.sum-card li.sum-note{list-style:none;margin-left:-18px;font-size:13px;color:var(--muted);font-style:italic}
+.sum-walk{margin-top:22px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 24px}
+.sum-walk h2{font-family:Montserrat,sans-serif;font-size:19px;margin:0 0 12px}
+.sum-scen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sum-scen button{min-height:56px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink);line-height:1.25}
+.sum-scen button small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:2px}
+.sum-scen button:hover{border-color:var(--brand-ink);background:var(--brand-soft)}
+.sum-tip{font-size:13px;color:var(--muted);margin:12px 0 0}
+.sum-open{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;margin:0 0 14px;border-radius:12px;border:0;background:#353b1f;color:#fff;font-weight:700;font-size:14.5px;cursor:pointer}
+.sum-open:hover{background:#2a2f18}
+@media (max-width:820px){
+  .sum-grid{grid-template-columns:1fr}
+  .sum-cols{grid-template-columns:1fr;gap:0}
+  .sum-scen{grid-template-columns:1fr 1fr}
+  .sum-top{flex-direction:column}
+  .summary h1{font-size:26px}
+}
+</style>
+</head>
+<body>
+<p class="banner"><b>Concept prototype</b> · Owner RFI case study · Nothing you enter is sent anywhere</p>
+<div class="stage">
+  <div class="device">
+  <div class="phone">
+    <div class="statusbar" aria-hidden="true"><span class="sb-time">9:41</span><span class="sb-icons">
+      <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 4.5a9.5 9.5 0 0 1 13 0"/><path d="M4 7.2a5.8 5.8 0 0 1 8 0"/><circle cx="8" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg>
+      <svg width="26" height="12" viewBox="0 0 26 12"><rect x=".75" y=".75" width="21.5" height="10.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="15" height="6" rx="1.5"/><rect x="23.5" y="4" width="2" height="4" rx="1"/></svg>
+    </span></div>
+    <div class="top">
+      <div class="top-l">
+        <button class="iconbtn" id="backBtn" aria-label="Back" hidden>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+        <span class="tag">Concept</span>
+      </div>
+      <div class="wordmark"><img src="logo.png" alt="" width="27" height="28" class="logo">evolve</div>
+      <button class="notes-toggle" id="notesBtn" aria-expanded="false" aria-controls="notes">Case notes</button>
+    </div>
+    <div class="welcome-slot" id="welcomeSlot"></div>
+    <div class="prog" aria-hidden="true">
+      <div class="seg" id="seg0"><div class="bar"><i></i></div><span>Your property</span></div>
+      <div class="seg" id="seg1"><div class="bar"><i></i></div><span>Your estimate</span></div>
+      <div class="seg" id="seg2"><div class="bar"><i></i></div><span>Next steps</span></div>
+    </div>
+    <div class="body" id="body">
+      <main class="screen" id="screen" tabindex="-1"></main>
+      <p class="trust" id="trust"><span>30,000+ owners</span><span aria-hidden="true">·</span><a href="https://www.shopperapproved.com/reviews/evolve.com" target="_blank" rel="noopener" aria-label="4.8 star verified reviews, read them on Shopper Approved (opens in a new tab)">4.8★ verified reviews</a><span aria-hidden="true">·</span><span>Fees from 10%</span></p>
+    </div>
+    <div class="homebar" aria-hidden="true"><i></i></div>
+  </div>
+  </div>
+  <aside class="notes" id="notes" aria-label="Case study notes"></aside>
+</div>
+
+<section class="summary" id="summary" hidden aria-labelledby="sumTitle">
+  <div class="sum-wrap">
+    <div class="sum-top">
+      <div>
+        <div class="sum-eyebrow"><img src="logo.png" alt="" width="22" height="23"> Owner RFI redesign · design summary</div>
+        <h1 id="sumTitle" tabindex="-1">Getting more of the right owners to a sales call</h1>
+        <p class="sum-lead">By Abby Salazar. <b>Main metric:</b> call requests (owners who start the flow and finish by asking for a call). <b>Supporting:</b> RFI completion, including email-only leads. <b>Guardrail:</b> lead quality: accepted by sales, signed, still with Evolve after a year.</p>
+      </div>
+      <button class="btn sum-back" data-sum="close">Back to prototype</button>
+    </div>
+
+    <div class="sum-grid">
+      <article class="sum-card">
+        <span class="sum-num">1</span>
+        <h2>What I think is causing the drop-off</h2>
+        <ul>
+          <li><b>No payoff before the ask.</b> Seven questions set up an estimate, then the last screen is a four-field contact form instead.</li>
+          <li><b>The phone and consent scare researchers.</b> "We'll contact you by email, calls and texts" on the first ask feels like a sales call is coming.</li>
+          <li><b>The address has no reason attached.</b> Asking for the exact address of a second home, with no explanation, feels invasive.</li>
+          <li><b>Mobile friction.</b> The phone field opens the letter keyboard, and a large rotating photo pushes each question down.</li>
+          <li><b>Poor fits aren't screened.</b> Timeshares, rooms and buyers finish the whole form and are turned away later.</li>
+          <li class="sum-note">These are hypotheses. Field-level analytics (which field people abandon on) would confirm them.</li>
+        </ul>
+      </article>
+
+      <article class="sum-card">
+        <span class="sum-num">2</span>
+        <h2>How my decisions improve the experience</h2>
+        <ul>
+          <li><b>Two paths from the first question.</b> Owners with a listing paste one link and see an estimate in seconds; one link finds all their homes.</li>
+          <li><b>Value before the ask.</b> The estimate comes before the phone number, with details unlocked by email.</li>
+          <li><b>The address earns its place.</b> It's framed as the input to the estimate, with a privacy line and an inline map check.</li>
+          <li><b>Same 8 screens, better order.</b> Three questions merged into one tap, one-tap answers, no dead ends.</li>
+          <li><b>Right lead, right path.</b> Poor fits exit kindly on screen one. Hot leads go to a fast lane, multi-home owners to the portfolio team, explorers get email.</li>
+          <li><b>No one leaves with nothing.</b> "Prefer email?" keeps owners in the pipeline and asks what's holding them back.</li>
+          <li><b>Honest numbers.</b> Take-home after Evolve's fee, time back, and what Evolve covers right under the estimate.</li>
+          <li><b>Built for messy reality.</b> Unreadable links, property manager accounts and partial failures each have a path.</li>
+        </ul>
+      </article>
+
+      <article class="sum-card">
+        <span class="sum-num">3</span>
+        <h2>Expected lift and how I’d validate it</h2>
+        <ul>
+          <li><b>Address step: 30% → about 15–20% drop-off.</b> The address is framed as the input to the estimate, with a privacy line and an inline map check. On the listed path the step disappears: the link stands in and the exact address is confirmed on the call.</li>
+          <li><b>Contact step: 35% → about 20–25% drop-off.</b> The estimate comes first, the first ask is only name and email, and the phone is its own step with the number keypad and an email-only option.</li>
+          <li><b>Overall completion: about 1 in 3 → roughly 45%</b> if both hold, and higher for owners on the listed path.</li>
+          <li><b>Lead quality up:</b> poor fits exit on screen one, so fewer finished forms get rejected by sales.</li>
+          <li class="sum-note">These are estimates for planning, not promises.</li>
+        </ul>
+        <h3>How I’d validate it</h3>
+        <ul>
+          <li><b>A/B test</b> the new flow against today’s, with step-level and field-level tracking so we see exactly where people stop.</li>
+          <li><b>Judge it on call requests per owner who starts</b>, with completion as the supporting metric, split by listed vs. not listed.</li>
+          <li><b>Hold the guardrail:</b> sales acceptance and sign-ups within 30–60 days as early signals, one-year retention as the final check.</li>
+        </ul>
+      </article>
+
+      <article class="sum-card">
+        <span class="sum-num">4</span>
+        <h2>If testing didn’t show improvement, I’d try…</h2>
+        <ul>
+          <li><b>Find the real leak first:</b> use field-level data to see which field people abandon, then target that field.</li>
+          <li><b>Ask for email before the estimate</b> if we’re losing people after they see their numbers.</li>
+          <li><b>Lead with gross revenue</b> instead of take-home after fees, if the honest after-fee number is scaring off strong owners.</li>
+          <li><b>Real calendar booking</b> for fast-lane and portfolio owners, if call requests stay flat.</li>
+          <li><b>Zip code first, full address later,</b> if the address step still loses people.</li>
+          <li><b>One scrolling page</b> instead of step-by-step screens for the guided path.</li>
+          <li><b>Recalibrate routing</b> with closed-won and retention data if lead quality drops, and check listing-data accuracy with a provider.</li>
+        </ul>
+      </article>
+
+      <article class="sum-card wide">
+        <span class="sum-num">5</span>
+        <h2>My AI workflow</h2>
+        <div class="sum-cols">
+          <div>
+            <h3>Where it sped me up</h3>
+        <ul>
+          <li><b>Auditing the live flow:</b> walked Evolve's RFI on mobile and pulled their exact colors, fonts and corner radius from the site's code in minutes.</li>
+          <li><b>Prototyping:</b> went from idea to a working, clickable prototype in hours, then iterated copy and layout in real time.</li>
+          <li><b>Testing:</b> automated run-throughs of every path after each change caught real bugs, like an "exploring" owner landing in the fast lane.</li>
+          <li><b>Pressure-testing my ideas:</b> the paste-a-link path was mine. AI helped surface the gaps (listings hide addresses, property manager accounts, unreadable links), and I designed around them.</li>
+          <li><b>Production:</b> screen exports, iPhone mockups and a deploy-ready folder.</li>
+        </ul>
+          </div>
+          <div>
+            <h3>Where it stalled</h3>
+        <ul>
+          <li><b>Visual craft:</b> several rounds of drawn hero illustrations never landed, so I switched to a photo, and creating that mockup photo also took multiple iterations.</li>
+          <li><b>Real data:</b> no access to Evolve's analytics, listing data or win rates. Estimates and scoring weights are placeholders.</li>
+          <li><b>Judgment stayed with me:</b> choosing the main metric, when to ask for contact details, and confirming the address on the call were my calls, sometimes against the AI's first suggestion.</li>
+        </ul>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="sum-walk">
+      <h2>Walk through a flow</h2>
+      <div class="sum-scen" id="sumScen"></div>
+      <p class="sum-tip">Every flow is also in the Case notes, and you can come back here from the Case notes or any "You're all set" screen.</p>
+      <button class="btn sum-back" data-sum="close" style="margin-top:14px">Back to prototype</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+/* ---------- Mock data (illustrative only) ---------- */
+const MARKETS = {
+  'Asheville, NC':{base:52000}, 'Gatlinburg, TN':{base:58000}, 'Destin, FL':{base:64000},
+  'South Lake Tahoe, CA':{base:61000}, 'Scottsdale, AZ':{base:55000}, 'Park City, UT':{base:70000},
+  'Hyannis, MA':{base:50000}, 'Galveston, TX':{base:46000}
+};
+const ADDRS = [
+  ['14 Laurel Ridge Rd','Asheville, NC','28801'],['87 Montford Ave','Asheville, NC','28801'],
+  ['220 Ski Mountain Rd','Gatlinburg, TN','37738'],['15 Cherokee Orchard Rd','Gatlinburg, TN','37738'],
+  ['45 Gulf Shore Dr','Destin, FL','32541'],['612 Scenic Hwy 98','Destin, FL','32541'],
+  ['1180 Pioneer Trail','South Lake Tahoe, CA','96150'],['3410 Lake Tahoe Blvd','South Lake Tahoe, CA','96150'],
+  ['7302 E Camelback Rd','Scottsdale, AZ','85251'],['1650 Park Ave','Park City, UT','84060'],
+  ['33 Sea St','Hyannis, MA','02601'],['2100 Seawall Blvd','Galveston, TX','77550']
+].map(([line,city,zip])=>({line,city,zip,full:`${line}, ${city} ${zip}`}));
+const BED_MULT = {studio:.6,'1':.75,'2':1,'3':1.3,'4':1.6,'5+':1.95};
+const BED_ORDER = ['studio','1','2','3','4','5+'];
+const BED_LABEL = {studio:'Studio','1':'1 bedroom','2':'2 bedrooms','3':'3 bedrooms','4':'4 bedrooms','5+':'5+ bedrooms'};
+
+/* ---------- State ---------- */
+const blank = () => ({reason:null,keep:null,pm:null,pmPool:[],pmSel:[],pmQ:'',extra:[],failedLinks:0,mTown:'',mBeds:null,step:'listed',path:null,links:[''],linkErr:{},listings:[],emailOnly:false,hist:[],type:null,units:null,addr:null,addrText:'',unit:'',beds:null,start:null,timeline:null,first:'',last:'',email:'',phone:'',slot:null,phoneSkipped:false,exitEmail:'',exitDone:false,errors:{}});
+let S = blank();
+
+const TYPES = [
+  {id:'home',label:'A whole home or condo',hint:'House, cabin, townhouse, condo',icon:'home',ok:true},
+  {id:'multi',label:'Multiple properties',hint:'Two or more homes',icon:'homes',ok:true},
+  {id:'room',label:'A private room in my home',icon:'door',ok:false},
+  {id:'timeshare',label:'A timeshare',icon:'cal',ok:false},
+  {id:'other',label:'Something else',hint:'Tent, houseboat, camper',icon:'tent',ok:false}
+];
+const STARTS = [
+  {id:'self',label:'Already renting it',hint:'I manage it myself',renting:'Yes, self-managed',furn:'Furnished'},
+  {id:'pm',label:'Already renting it',hint:'With a property manager',renting:'Yes, with a manager',furn:'Furnished'},
+  {id:'furn',label:'Not renting yet',hint:'It’s furnished',renting:'No',furn:'Furnished'},
+  {id:'unfurn',label:'Not renting yet',hint:'It’s unfurnished',renting:'No',furn:'Unfurnished'}
+];
+const TIMES = [
+  {id:'asap',label:'As soon as possible'},{id:'90',label:'Within 3 months'},
+  {id:'6mo',label:'In 3–6 months'},{id:'explore',label:'Just exploring for now'}
+];
+const SLOTS = ['Morning','Afternoon','Evening'];
+const REASONS = ['Just researching','I\u2019d rather not get calls','Talking with a partner first','Something else'];
+
+/* ---------- Icons ---------- */
+const I = {
+  home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  homes:'<path d="M2 12l6-5 6 5"/><path d="M4 11v8h8v-8"/><path d="M12 9l5-4 5 4"/><path d="M20 8v11h-6"/>',
+  door:'<rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="14.5" cy="12" r=".8" fill="currentColor"/>',
+  cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  tent:'<path d="M12 4L3 20h18L12 4z"/><path d="M12 4v16M9 20l3-6 3 6"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  checkc:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 10"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  link:'<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>',
+  trend:'<path d="M4 17l6-6 4 4 6-7"/><path d="M15 8h5v5"/>',
+  chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+  broom:'<path d="M14 3l-3 9"/><path d="M6 12h10l2 9H4z"/>',
+  badge:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  doc:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>'
+};
+const ic = (n,s=22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- Listing lookup (simulated) ---------- */
+/* In production this would come from a listing-data provider or the listing's public preview.
+   Listings only show an approximate area, so the exact address is confirmed on the sales call. */
+const SAMPLES = {
+  '48213907':{title:'Laurel Ridge Cabin with mountain views and hot tub',kind:'Cabin',beds:'3',sleeps:8,city:'Asheville, NC',rating:4.92,reviews:118,nightly:245,occ:.64,whole:true},
+  '2219874':{title:'Gulf-front condo, steps to the beach',kind:'Condo',beds:'2',sleeps:6,city:'Destin, FL',rating:4.85,reviews:76,nightly:289,occ:.61,whole:true},
+  '2219880':{title:'Bayview condo with pool access',kind:'Condo',beds:'3',sleeps:8,city:'Destin, FL',rating:4.78,reviews:52,nightly:325,occ:.58,whole:true},
+  '30177452':{title:'Sunny private room in a Craftsman home',kind:'Private room',beds:'1',sleeps:2,city:'Asheville, NC',rating:4.7,reviews:41,nightly:79,occ:.7,whole:false}
+};
+const SAMPLE_LINKS = [
+  ['Asheville cabin','https://www.airbnb.com/rooms/48213907'],
+  ['Destin condo','https://www.vrbo.com/2219874'],
+  ['Private room','https://www.airbnb.com/rooms/30177452'],
+  ['Managed by a PM','https://www.vrbo.com/77777777'],
+  ['Unreadable link','https://www.airbnb.com/rooms/404']
+];
+const PM_HOSTS = {'77777777':{name:'Blue Ridge Stays',count:48}};
+const PM_FEE = .25;  /* assumed typical full-service manager fee */
+const PM_LIMIT = 10; /* more listings than this on one host = probably a property manager */
+function platformOf(u){
+  if(/(^|\.|\/\/)airbnb\.[a-z.]+\//i.test(u+'/')) return 'Airbnb';
+  if(/(^|\.|\/\/)(vrbo|homeaway)\.[a-z.]+\//i.test(u+'/')) return 'Vrbo';
+  if(/(^|\.|\/\/)booking\.com\//i.test(u+'/')) return 'Booking.com';
+  return null;
+}
+function hash(str){ let h=2166136261; for(const c of str){ h^=c.charCodeAt(0); h=Math.imul(h,16777619);} h^=h>>>16; h=Math.imul(h,2246822507); h^=h>>>13; h=Math.imul(h,3266489909); h^=h>>>16; return h>>>0; }
+/* One link -> every listing from the same host (via the host profile every listing links to). */
+const SAMPLE_HOSTS = { '48213907':['48213907'], '2219874':['2219874','2219880'], '30177452':['30177452'] };
+const DEMO_HOST = {'12345678':3};
+function lookup(url){
+  const platform = platformOf(url);
+  /* Unreadable: private, delisted or unsupported (simulated with /rooms/404 or a link with no listing path) */
+  if(/\/rooms\/404\b/.test(url) || !/[a-z]\/[^\s]{3,}/i.test(url.replace(/^https?:\/\//,''))) return {failed:true, platform, url};
+  const pmk = Object.keys(PM_HOSTS).find(k=>url.includes(k));
+  if(pmk){
+    const pm = PM_HOSTS[pmk];
+    const pool = Array.from({length:pm.count},(_,i)=>({...genListing(url+(i?'#'+i:'')), platform, pasted:i===0}));
+    return {pm:{...pm}, listings:pool, platform, url};
+  }
+  const sid = Object.keys(SAMPLE_HOSTS).find(k=>url.includes(k));
+  if(sid) return {listings:SAMPLE_HOSTS[sid].map((k,i)=>({...SAMPLES[k], id:k, platform, viaHost:i>0, simulated:false}))};
+  const isProfile = /\/users\/(show|profile)\//i.test(url);
+  const h = hash(url);
+  const demo = Object.keys(DEMO_HOST).find(k=>url.includes(k));
+  const n = demo ? DEMO_HOST[demo] : isProfile ? 2+(h%3) : 1+(h%3);
+  return {listings:Array.from({length:n},(_,i)=>({...genListing(url+(i?'#'+i:'')), platform, viaHost: isProfile || i>0}))};
+}
+function manualListing(city, beds){
+  const known = MARKETS[city]; const base = known ? known.base : 48000;
+  const nightly = Math.round(base*BED_MULT[beds]/(365*.6)/5)*5;
+  return {id:'manual', title: beds==='studio' ? 'Your studio' : `Your ${beds}-bedroom home`, kind:'Home', beds, sleeps:(beds==='studio'?2:parseInt(beds)*2+2), city, rating:null, reviews:null, nightly, occ:.6, whole:true, include:true, platform:'Entered by you', manual:true};
+}
+function genListing(url){
+  const h = hash(url), cities = Object.keys(MARKETS), city = cities[h%cities.length];
+  const beds = String(2+(h%3)), kind = ['Cabin','House','Condo','Townhouse'][(h>>>3)%4];
+  const occ = .56+((h>>>5)%9)/100;
+  const nightly = Math.round(MARKETS[city].base*BED_MULT[beds]/(365*.6)/5)*5;
+  const adj=['Cozy','Bright','Modern','Quiet','Spacious','Updated','Light-filled','Classic'][(h>>>12)%8];
+  return {title:`${adj} ${kind.toLowerCase()} in ${city.split(',')[0]}`,kind,beds,sleeps:+beds*2+2,city,rating:+(4.6+((h>>>7)%39)/100).toFixed(2),reviews:20+((h>>>9)%160),nightly,occ,whole:true,id:url,simulated:true};
+}
+const used = () => S.listings.filter(l=>l.whole && l.include);
+const FEE = .10, PLATFORM_FEE = .03, LIFT = [.10,.18], HOURS = 20;
+function estimateYes(){
+  const ok = used();
+  const gross = ok.reduce((a,l)=>a+l.nightly*365*l.occ,0);
+  const k = n => Math.round(n/1000);
+  const today = gross*(1-PLATFORM_FEE)*(S.pm?(1-PM_FEE):1);
+  const evG = LIFT.map(x=>gross*(1+x));
+  const ev = evG.map(g=>g*(1-PLATFORM_FEE)*(1-FEE));
+  return {n:ok.length, gross:k(gross), today:k(today), evGross:evG.map(k), fee:evG.map(g=>k(g*FEE)), lo:k(ev[0]), hi:k(ev[1]), hours:HOURS*ok.length};
+}
+function scoreYes(){
+  const ok = used(); if(!ok.length) return 0;
+  const l = ok[0]; let s = 25 /*already hosting*/ + 25 /*live now*/ + 20 /*whole home*/;
+  s += ({'1':5,'2':15,'3':15,'4':20})[l.beds]||20;
+  if(l.rating>=4.7) s+=10;
+  if(S.pm) s+=10; /* switching from another manager */
+  if(ok.length>1) s+=10;
+  return Math.min(100,s);
+}
+
+/* ---------- Scoring & routing ---------- */
+function score(){
+  if(S.path==='yes') return scoreYes();
+  let s=0;
+  if(S.type==='home') s+=20; if(S.type==='multi') s+=30;
+  if(S.beds) s+= ({studio:5,'1':5,'2':15,'3':15,'4':20,'5+':20})[S.beds];
+  if(S.addr && S.addr.city) s+=10;
+  if(S.start) s+= ({self:25,pm:20,furn:15,unfurn:5})[S.start];
+  if(S.timeline) s+= ({asap:25,'90':20,'6mo':8,explore:0})[S.timeline];
+  return Math.min(100,s);
+}
+function lane(){
+  if(S.step==='exit-ineligible' || S.step==='exit-listing') return 'out';
+  if(S.path==='yes'){ const n=used().length; return !n ? null : (n>1?'port':'fast'); }
+  if(S.step==='exit-buy') return 'buy';
+  if(!S.timeline) return null;
+  if(S.type==='multi') return 'port';
+  if(S.timeline==='explore') return 'exp';
+  return score()>=60 ? 'fast' : 'exp';
+}
+function estimate(){
+  const base = (S.addr && S.addr.city && MARKETS[S.addr.city]) ? MARKETS[S.addr.city].base : 48000;
+  const mid = base * (BED_MULT[S.beds]||1);
+  const r = n => Math.round(n/1000);
+  const occ = .62;
+  return {lo:r(mid*.85), hi:r(mid*1.15), nightly:Math.round(mid/(365*occ)), occ:Math.round(occ*100), comps: 18 + BED_ORDER.indexOf(S.beds)*6, local:!!(S.addr&&S.addr.city)};
+}
+
+/* ---------- Flow ---------- */
+const PHASE = {manual:0,'pm-pick':0,listed:0,paste:0,loading:0,results:1,'exit-listing':0,type:0,units:0,address:0,beds:0,start:0,timeline:0,estimate:1,phone:2,done:2,'exit-ineligible':0,'exit-buy':0};
+const P0 = ['listed','type','address','beds','start','timeline'];
+const P0Y = ['listed','paste','loading','pm-pick'];
+function nextOf(st){
+  return ({type: S.type==='multi'?'units':'address', units:'address', address:'beds', beds:'start', start:'timeline', timeline:'estimate', estimate:'phone', phone:'done'})[st];
+}
+function go(st){ S.hist.push(S.step); S.step=st; S.errors={}; render(true); }
+function advance(){ go(nextOf(S.step)); }
+function back(){ if(S.step==='manual' && S.keep){ S.listings=S.keep; S.keep=null; } if(S.hist.length){ S.step=S.hist.pop(); if(S.step==='loading') S.step=S.hist.pop()||'paste'; S.errors={}; render(true);} }
+
+/* ---------- Views ---------- */
+const V = {};
+V.type = () => `
+  <h1 tabindex="-1">What would you like to rent out?</h1>
+  <p class="sub">See what it could earn in about a minute. No commitment.</p>
+  ${TYPES.map(t=>`<button class="opt" data-act="type" data-v="${t.id}" aria-pressed="${S.type===t.id}">${ic(t.icon)}<span>${t.label}${t.hint?`<small>${t.hint}</small>`:''}</span></button>`).join('')}
+`;
+
+V.listed = () => `
+  <h1 tabindex="-1">Is your property listed on Airbnb, Vrbo or another site right now?</h1>
+  <p class="sub">Either way, you’ll see what it could earn with Evolve.</p>
+  <button class="opt" data-act="path" data-v="yes" aria-pressed="${S.path==='yes'}">${ic('link')}<span>Yes, it’s listed<small>Paste your link and get an estimate in seconds</small></span></button>
+  <button class="opt" data-act="path" data-v="no" aria-pressed="${S.path==='no'}">${ic('home')}<span>No, not yet<small>Answer a few quick questions</small></span></button>
+  <div class="spacer"></div>
+  <button class="link" data-act="buy">I’m looking to buy a property</button>`;
+
+V.paste = () => `
+  <h1 tabindex="-1">Paste your listing link</h1>
+  <p class="sub">We’ll pull your property details and compare them with similar rentals nearby.</p>
+  <div class="proof">${ic('homes',18)}<span><b>Have more than one home?</b> Paste any one listing (or your host profile) and we’ll find the rest.</span></div>
+  <form id="pasteForm" novalidate>
+    ${S.links.map((v,i)=>`<div class="field">
+      <label for="link${i}">${S.links.length>1?`Listing ${i+1}`:'Listing link'}</label>
+      <div class="linkrow"><input id="link${i}" data-i="${i}" class="linkin" type="url" inputmode="url" autocomplete="url" placeholder="airbnb.com/rooms/… or your host profile" value="${esc(v)}" ${S.linkErr[i]?`aria-invalid="true" aria-describedby="lerr${i}"`:''}>
+      ${i>0?`<button type="button" class="iconbtn" data-act="rm-link" data-v="${i}" aria-label="Remove listing ${i+1}">${ic('x',18)}</button>`:''}</div>
+      ${S.linkErr[i]?`<div class="err" id="lerr${i}">${S.linkErr[i]}</div>`:''}
+    </div>`).join('')}
+    <details class="howto"><summary>How do I find my link?</summary>
+      <ol>
+        <li><b>On your phone:</b> open your listing in the Airbnb, Vrbo or Booking.com app, tap <b>Share</b>, then <b>Copy link</b>.</li>
+        <li><b>On a computer:</b> open your listing and copy the address from the top of your browser.</li>
+        <li>Come back here and paste it. Any one of your listings works.</li>
+      </ol>
+    </details>
+    ${S.links.length<10?`<button type="button" class="addlink" data-act="add-link">${ic('plus',18)} Add a listing from another site</button>`:''}
+    <button class="btn" type="submit">Get my estimate</button>
+    <p class="fine">${ic('shield',16)}<span>Works with Airbnb, Vrbo and Booking.com links. We only read public listing details.</span></p>
+  </form>
+  <div class="spacer"></div>
+  <button class="link" data-act="no-link">I don’t have the link handy</button>`;
+
+V.loading = () => `
+  <h1 tabindex="-1">Looking up your listings…</h1>
+  <p class="sub">This takes a few seconds.</p>
+  <ul class="load" aria-live="polite">
+    <li style="--d:0s">Finding your listing</li>
+    <li style="--d:.6s">Reading bedrooms, reviews and rates</li>
+    <li style="--d:1.2s">Finding your other listings from this host</li>
+    <li style="--d:1.8s">Comparing similar rentals nearby</li>
+    <li style="--d:2.4s">Calculating your earnings with Evolve</li>
+  </ul>`;
+
+V.manual = () => {
+  const err = S.errors;
+  return `
+  <h1 tabindex="-1">${S.keep?'Add the home we couldn\u2019t read':'We couldn\u2019t read that listing'}</h1>
+  <p class="sub">${S.keep?'Tell us two things and we\u2019ll add it to your estimate.':'It may be private, unlisted or not supported yet. Tell us two things and we\u2019ll still estimate it.'}</p>
+  <form id="manualForm" novalidate>
+    <div class="field"><label for="town">Town or zip code</label>
+      <input id="town" list="towns" autocomplete="address-level2" placeholder="e.g. Asheville, NC" value="${esc(S.mTown||'')}" ${err.town?'aria-invalid="true"':''}>
+      <datalist id="towns">${Object.keys(MARKETS).map(c=>`<option value="${c}"></option>`).join('')}</datalist>
+      ${err.town?`<div class="err">${err.town}</div>`:''}
+    </div>
+    <div class="lbl-sm" id="mbLbl">Bedrooms</div>
+    <div class="chips" role="group" aria-labelledby="mbLbl">${BED_ORDER.map(b=>`<button type="button" class="chip" data-act="mbeds" data-v="${b}" aria-pressed="${S.mBeds===b}">${b==='studio'?'Studio':b}</button>`).join('')}</div>
+    ${err.mbeds?`<div class="err" style="margin-top:6px">${err.mbeds}</div>`:''}
+    <div style="height:20px"></div>
+    <button class="btn" type="submit">See my estimate</button>
+  </form>
+  <div class="spacer"></div>
+  ${S.keep?'':`<button class="link" data-act="edit-links">Try a different link</button>`}`;
+};
+
+function pmRows(){
+  const q = (S.pmQ||'').trim().toLowerCase();
+  const rows = S.pmPool.map((l,i)=>({l,i})).filter(({l})=>l.pasted || !q || (l.title+' '+l.city).toLowerCase().includes(q));
+  const shown = q ? rows : rows.slice(0,6);
+  return shown.map(({l,i})=>`<label class="pmrow"><input type="checkbox" data-pm="${i}" ${S.pmSel.includes(i)?'checked':''}>
+      <span><b>${esc(l.title)}</b><small>${BED_LABEL[l.beds]} \u00b7 near ${esc(l.city)}${l.pasted?' \u00b7 <em>the link you pasted</em>':''}</small></span></label>`).join('')
+    + (!q && rows.length>6 ? `<p class="fine">Showing 6 of ${rows.length}. Search to find the others.</p>` : '')
+    + (q && rows.length<=1 ? `<p class="fine">No other homes match \u201c${esc(S.pmQ)}\u201d.</p>` : '');
+}
+V['pm-pick'] = () => `
+  <h1 tabindex="-1">This listing is managed by ${esc(S.pm.name)}</h1>
+  <p class="sub">They manage ${S.pm.count} homes on this account. Which ones are yours?</p>
+  <div class="proof">${ic('trend',18)}<span><b>Switching managers?</b> Evolve\u2019s fees start at 10%, with no long-term contract.</span></div>
+  <div class="field"><label for="pmq">Search their homes</label><input id="pmq" type="search" placeholder="Street, town or listing name" value="${esc(S.pmQ||'')}" autocomplete="off"></div>
+  <div class="pmlist" id="pmlist">${pmRows()}</div>
+  ${S.errors.pm?`<div class="err">${S.errors.pm}</div>`:''}
+  <div class="spacer"></div>
+  <button class="btn" data-act="pm-go">Continue with ${S.pmSel.length} home${S.pmSel.length===1?'':'s'}</button>`;
+
+function listingCard(l, i, multi){
+  const off = multi && (!l.whole || !l.include);
+  return `<div class="lcard${off?' off':''}">
+    <div class="thumb" aria-hidden="true">${ic(l.kind==='Condo'?'homes':'home',26)}</div>
+    <div class="lmeta">
+      <span class="plat">${esc(l.platform)}</span>
+      <b>${esc(l.title)}</b>
+      ${l.manual?`<span>${esc(l.city)}</span>`:`<span>${l.kind==='Private room'?'Private room':BED_LABEL[l.beds]} \u00b7 ${esc(l.kind)} \u00b7 Sleeps ${l.sleeps}</span>
+      <span>Near ${esc(l.city)}</span>`}
+      ${l.manual?`<span class="rate">Based on similar ${esc(BED_LABEL[l.beds].toLowerCase())} homes nearby</span>`:`<span class="rate">${ic('star',14)} ${l.rating.toFixed(2)} (${l.reviews} reviews) \u00b7 ~$${l.nightly}/night</span>`}
+      ${multi ? (l.whole
+        ? `<label class="incl"><input type="checkbox" data-incl="${i}" ${l.include?'checked':''}> Include in my estimate</label>`
+        : `<span class="noteline">Private room. Evolve manages whole homes, so it’s not included.</span>`) : ''}
+    </div></div>`;
+}
+
+V.results = () => {
+  const e = estimateYes(), ok = used(), err = S.errors, multi = S.listings.length>1;
+  const found = S.listings.length, fromHost = S.listings.some(l=>l.viaHost), manual = S.listings.length>0 && S.listings.every(l=>l.manual);
+  const diffLo = e.lo-e.today, diffHi = e.hi-e.today;
+  const diff = diffHi<=0 ? 'About the same as today' : (diffLo>=0 ? `$${diffLo}k–$${diffHi}k more than today` : `Up to $${diffHi}k more than today`);
+  const SERVICES = [
+    ['globe','Listed everywhere guests are looking','Airbnb, Vrbo, Booking.com and more, managed from one place'],
+    ['trend','Smarter pricing for more bookings','Nightly rates adjusted to demand. Owners earn up to 18% more than the market'],
+    ['chat','Guest messages and bookings handled','Questions, booking requests and check-in details, so you don\u2019t have to'],
+    ['badge','$1M liability coverage on every booking','Protection for your home and your guests'],
+    ['broom','Your cleaner or ours','Keep the team you trust, or use our vetted local partners'],
+    ['doc','No long-term contract','Plus a risk-free owner guarantee (terms apply)']
+  ];
+  return `
+  <h1 tabindex="-1">${ok.length>1?`Here’s what your ${ok.length} homes could earn with Evolve`:'Here’s what you could earn with Evolve'}</h1>
+  <p class="sub">${manual?'Based on your details and similar rentals nearby.':`Based on your listing${ok.length>1?'s':''} and similar rentals nearby.`}</p>
+  ${S.failedLinks?`<div class="proof warn">${ic('checkc',18)}<span>We couldn\u2019t read ${S.failedLinks} of your links. <button class="inline-link" data-act="fix-failed">Enter ${S.failedLinks>1?'one':'its'} details now</button>, or a specialist will add ${S.failedLinks>1?'them':'it'} on the call.</span></div>`:''}
+  ${fromHost&&multi?`<div class="proof">${ic('checkc',18)}<span><b>We found ${found} listings on your host profile.</b> Untick any you don’t want included.</span></div>`:''}
+  ${S.listings.map((l,i)=>listingCard(l,i,multi)).join('')}
+  <button class="link small" data-act="edit-links">${manual?'Have the link now? Paste it instead':`Not right? Change link${S.listings.length>1?'s':''}`}</button>
+
+  ${!ok.length?`<div class="est yes"><div class="lbl">Tick at least one listing to see your estimate.</div></div>`:`<div class="est yes">
+    <div class="lbl">Estimated take-home with Evolve, after fees${ok.length>1?` (${ok.length} homes)`:''}</div>
+    <div class="range">$${e.lo}k–$${e.hi}k <small>/ year</small></div>
+    <div class="cmp">
+      <div><span>${S.pm?`Today, with ${esc(S.pm.name)} (est.)`:'Today, managing it yourself (est.)'}</span><b>$${e.today}k</b></div>
+      <div><span>Difference</span><b>${diff}</b></div>
+      ${S.pm?`<div><span>Management fee</span><b>~25% \u2192 10%</b></div>`:`<div><span>${ic('clock',15)} Time back</span><b>~${e.hours} hrs a month</b></div>`}
+    </div>
+    <details class="how"><summary>How we calculated this</summary>
+      <div><span>Your current bookings revenue (est.)</span><b>$${e.gross}k</b></div>
+      <div><span>With Evolve pricing (+10–18%)</span><b>$${e.evGross[0]}k–$${e.evGross[1]}k</b></div>
+      <div><span>Booking-site fees (~3%)</span><b>applied to both</b></div>
+      ${S.pm?`<div><span>Current manager fee (~25%, typical)</span><b>\u2212$${Math.round(e.gross*.97*PM_FEE)}k</b></div>`:''}
+      <div><span>Evolve fee (10%)</span><b>−$${e.fee[0]}k–$${e.fee[1]}k</b></div>
+      <p>Revenue is estimated from your nightly rate and similar rentals’ occupancy. An estimate, not a guarantee. Example numbers for this prototype.</p>
+    </details>
+  </div>`}
+
+  <h2 class="sec">What you get with Evolve</h2>
+  <ul class="svc">${SERVICES.map(([i,t,d])=>`<li>${ic(i,20)}<div><b>${t}</b><span>${d}</span></div></li>`).join('')}</ul>
+  <div class="feebox">
+    <div><b>Fees from 10%</b><span>of booking revenue. Nothing up front.</span></div>
+    <div><b>30,000+ owners</b><span>4.8★ verified reviews</span></div>
+  </div>
+
+  <section id="capture" class="capture">
+    <h2 class="sec">Talk through your estimate with a specialist</h2>
+    <p class="sub" style="margin-bottom:16px">15 minutes, no obligation. We’ll confirm your address and details on the call.</p>
+    <form id="leadForm" novalidate>
+      <div class="row2">
+        <div class="field"><label for="first">First name</label><input id="first" autocomplete="given-name" value="${esc(S.first)}" ${err.first?'aria-invalid="true"':''}>${err.first?`<div class="err">${err.first}</div>`:''}</div>
+        <div class="field"><label for="last">Last name</label><input id="last" autocomplete="family-name" value="${esc(S.last)}" ${err.last?'aria-invalid="true"':''}>${err.last?`<div class="err">${err.last}</div>`:''}</div>
+      </div>
+      <div class="field"><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" value="${esc(S.email)}" ${err.email?'aria-invalid="true"':''}>${err.email?`<div class="err">${err.email}</div>`:''}</div>
+      ${S.emailOnly?'':`
+      <div class="field"><label for="phone">Phone</label>
+        <div class="tel"><span class="cc" aria-hidden="true">+1</span><input id="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(555) 555-5555" value="${esc(S.phone)}" ${err.phone?'aria-invalid="true"':''}></div>
+        ${err.phone?`<div class="err">${err.phone}</div>`:''}
+      </div>
+      <div style="height:4px"></div>`}
+      <button class="btn" type="submit">${S.emailOnly?'Email me my report':'Book my free call'}</button>
+      <button type="button" class="link" data-act="toggle-email">${S.emailOnly?'I’d rather talk to someone':'Prefer email? Send me the report instead'}</button>
+      ${S.emailOnly?'':`<p class="fine" style="margin-top:4px">By tapping “Book my free call”, you agree Evolve may call or text you about your property. Message and data rates may apply.</p>`}
+    </form>
+  </section>
+  <div class="sticky" id="stickyCta"><button class="btn" data-act="to-capture">Talk to a specialist</button></div>`;
+};
+
+V['exit-listing'] = () => `
+  <h1 tabindex="-1">This listing is a private room</h1>
+  <p class="sub">Evolve manages whole homes and condos right now, so we can’t give you an accurate estimate. Thanks for checking with us.</p>
+  ${exitCapture('Want our free guide to hosting on your own?','Send me the guide')}
+  <div class="spacer"></div>
+  <button class="link" data-act="edit-links">Try a different link</button>`;
+
+V.units = () => `
+  <h1 tabindex="-1">How many properties?</h1>
+  <p class="sub">Start with one of them. We’ll cover the rest with our portfolio team.</p>
+  <div class="chips">${['2–4','5–9','10+'].map(u=>`<button class="chip" data-act="units" data-v="${u}" aria-pressed="${S.units===u}">${u}</button>`).join('')}</div>`;
+
+function addrConfirm(){
+  if(!S.addr) return '';
+  const local = !!S.addr.city;
+  return `
+    <div class="card">
+      <div class="map">${mapSvg()}</div>
+      <div class="addr"><div><b>${esc(S.addr.line)}</b><span>${esc(S.addr.city?S.addr.city+' '+S.addr.zip:'Address entered manually')}</span></div></div>
+    </div>
+    <div class="field"><label for="unit">Apt, unit or lot <span style="color:var(--muted);font-weight:400">(optional)</span></label><input id="unit" autocomplete="address-line2" value="${esc(S.unit)}"></div>
+    ${local?`<div class="proof">${ic('checkc',18)}<span><b>Good news:</b> we already host guests in ${esc(S.addr.city.split(',')[0])}.</span></div>`:''}
+    <button class="btn" data-act="addr-ok">Continue</button>`;
+}
+V.address = () => `
+  <h1 tabindex="-1">Where’s the property?</h1>
+  <p class="sub">We’ll compare it with similar rentals nearby to estimate what it could earn.</p>
+  <div class="field ac">
+    <label for="addr">Property address</label>
+    <div style="position:relative">
+      <span class="pin">${ic('pin',20)}</span>
+      <input id="addr" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addrList" autocomplete="off" placeholder="Start typing an address" value="${esc(S.addrText)}" ${S.errors.addr?'aria-invalid="true" aria-describedby="addrErr"':''}>
+      <ul class="listbox" id="addrList" role="listbox" hidden></ul>
+    </div>
+    ${S.errors.addr?`<div class="err" id="addrErr">${S.errors.addr}</div>`:''}
+  </div>
+  <div id="addrConfirm" aria-live="polite">${addrConfirm()}</div>
+  ${S.addr?'':`<p class="fine">${ic('shield',16)}<span>Only used to find comparable rentals. Never shown publicly or shared.</span></p>`}`;
+
+
+V.beds = () => `
+  <h1 tabindex="-1">How many bedrooms?</h1>
+  <p class="sub">Bedrooms are the biggest driver of rental income.</p>
+  <div class="chips">${BED_ORDER.map(b=>`<button class="chip" data-act="beds" data-v="${b}" aria-pressed="${S.beds===b}">${b==='studio'?'Studio':b}</button>`).join('')}</div>`;
+
+V.start = () => {
+  const G = [['Renting it now',[['self','I manage it myself'],['pm','A property manager handles it']]],
+             ['Not renting yet',[['furn','It\u2019s furnished'],['unfurn','It\u2019s unfurnished']]]];
+  return `
+  <h1 tabindex="-1">Where are you starting from?</h1>
+  <p class="sub">Either way works. Over half of our new owners are first-time hosts.</p>
+  ${G.map(([g,opts],gi)=>`<div class="grp" role="group" aria-labelledby="grp${gi}">
+    <div class="grp-lbl" id="grp${gi}">${g}</div>
+    ${opts.map(([id,t])=>`<button class="opt" data-act="start" data-v="${id}" aria-pressed="${S.start===id}" aria-label="${g}: ${t}"><span>${t}</span></button>`).join('')}
+  </div>`).join('')}`;
+};
+
+V.timeline = () => `
+  <h1 tabindex="-1">When would you like to start hosting?</h1>
+  <p class="sub">This helps us plan your photoshoot and listing around your dates.</p>
+  ${TIMES.map(o=>`<button class="opt" data-act="timeline" data-v="${o.id}" aria-pressed="${S.timeline===o.id}"><span>${o.label}</span></button>`).join('')}`;
+
+V.estimate = () => {
+  const e = estimate();
+  const where = e.local ? `${esc(S.addr.city.split(',')[0])} homes` : 'Homes';
+  const err = S.errors;
+  return `
+  <h1 tabindex="-1">${where} like yours could earn</h1>
+  <div class="est">
+    <div class="range">$${e.lo}k–$${e.hi}k <small>/ year</small></div>
+    <div class="lbl">Estimated rental income for ${BED_LABEL[S.beds].toLowerCase()}${e.local?'':' (national average; a specialist will refine it)'}. Example numbers for this prototype.</div>
+    <div class="locked" aria-label="Full report details are locked until you add your email">
+      <div><span>Peak-season nightly rate</span><b aria-hidden="true">$${e.nightly+90}</b></div>
+      <div><span>Projected occupancy</span><b aria-hidden="true">${e.occ}%</b></div>
+      <div><span>Comparable rentals nearby</span><b aria-hidden="true">${e.comps}</b></div>
+      <div class="lockline">${ic('lock',15)} Included in your full report</div>
+    </div>
+  </div>
+  <h2 class="sec">Where should we send your full report?</h2>
+  <form id="emailForm" novalidate>
+    <div class="row2">
+      <div class="field"><label for="first">First name</label><input id="first" autocomplete="given-name" value="${esc(S.first)}" ${err.first?'aria-invalid="true"':''}>${err.first?`<div class="err">${err.first}</div>`:''}</div>
+      <div class="field"><label for="last">Last name</label><input id="last" autocomplete="family-name" value="${esc(S.last)}" ${err.last?'aria-invalid="true"':''}>${err.last?`<div class="err">${err.last}</div>`:''}</div>
+    </div>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" value="${esc(S.email)}" ${err.email?'aria-invalid="true"':''}>${err.email?`<div class="err">${err.email}</div>`:''}</div>
+    <button class="btn" type="submit">Email me my full report</button>
+    <p class="fine">${ic('shield',16)}<span>We’ll only email you about your property. No spam, and you can unsubscribe anytime.</span></p>
+  </form>`;
+};
+
+V.phone = () => {
+  const L = lane(), err = S.errors;
+  const copy = {
+    fast:{h:`You look like a great fit, ${esc(S.first)}.`, p:'Owners like you are often ready to host within about a month. A rental specialist can walk you through your report and next steps.', cta:'Book my call', slots:true},
+    port:{h:`Let’s get you to our portfolio team, ${esc(S.first)}.`, p:'Owners with several homes get a dedicated specialist and a plan for all of them.', cta:'Request a call', slots:true},
+    exp:{h:`Your report is on its way, ${esc(S.first)}.`, p:'Want a quick 15-minute call to go through it? No pressure. Many owners like to read it first.', cta:'Request a call', slots:false}
+  }[L];
+  return `
+  <h1 tabindex="-1">${copy.h}</h1>
+  <p class="sub">${copy.p}</p>
+  <form id="phoneForm" novalidate>
+    <div class="field"><label for="phone">Best number to reach you</label>
+      <div class="tel"><span class="cc" aria-hidden="true">+1</span><input id="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(555) 555-5555" value="${esc(S.phone)}" ${err.phone?'aria-invalid="true" aria-describedby="phErr"':''}></div>
+      ${err.phone?`<div class="err" id="phErr">${err.phone}</div>`:''}
+    </div>
+    <div style="height:6px"></div>
+    <button class="btn" type="submit">${copy.cta}</button>
+    ${L==='exp'?`<button type="button" class="btn ghost" data-act="skip-phone">Just email me the report</button>`:`<button type="button" class="link" data-act="skip-phone">Prefer email? Have a specialist email me instead</button>`}
+    <p class="fine">By tapping “${copy.cta}”, you agree Evolve may call or text you about your property. Consent isn’t required to get your report. Message and data rates may apply.</p>
+  </form>`;
+};
+
+V.done = () => {
+  const L = lane(), skipped = S.phoneSkipped;
+  const yes = S.path==='yes';
+  const hot = skipped && (L==='fast' || L==='port');
+  const items = hot ? [
+      [L==='port'?'Our portfolio team will email you':'A rental specialist will email you','Within one business day, at '+esc(S.email)],
+      ['Your full report is in your inbox','Pricing, comparable rentals and next steps'],
+      ['Talk whenever you\u2019re ready','Reply to the email to set up a call']
+    ] : skipped ? [
+      ['Your full report is in your inbox','Check '+esc(S.email)+' in a few minutes'],
+      ['A short guide to getting started','Three emails over the next two weeks'],
+      ['Talk whenever you\u2019re ready','Reply to any email to set up a call']
+    ] : [
+      [L==='port'?'Our portfolio team will call you':'A rental specialist will call you', S.slot ? 'In the '+S.slot.toLowerCase()+', your local time' : 'Usually within one business day'],
+      yes ? ['Confirm your address and details','And go through your estimate together'] : ['Go through your full report together','Pricing, comparable rentals and your options'],
+      yes ? ['Switch over at your pace','We set up your listings and pricing for you'] : ['Photos, listing, first guests','We handle setup at your pace']
+    ];
+  return `
+  <div class="check">${ic('check',32)}</div>
+  <h1 tabindex="-1">${hot?'You\u2019re all set, '+esc(S.first):skipped?'Your report is on its way':'You\u2019re all set, '+esc(S.first)}</h1>
+  <p class="sub">${hot?'No call needed. We\u2019ll follow up by email.':skipped?'No call needed. Read it whenever you\u2019re ready.':'Here\u2019s what happens next.'}</p>
+  <ol class="steps">${items.map(([a,b])=>`<li>${a}<small>${b}</small></li>`).join('')}</ol>
+  ${skipped?`<div class="pref">
+    <div class="lbl-sm" id="whyLbl">What\u2019s holding you back? <span>(optional)</span></div>
+    <div class="chips two sm" role="group" aria-labelledby="whyLbl">${REASONS.map(x=>`<button type="button" class="chip" data-act="reason" data-v="${x}" aria-pressed="${S.reason===x}">${x}</button>`).join('')}</div>
+    <p class="fine" aria-live="polite" style="min-height:20px">${S.reason?`${ic('checkc',16)}<span>Thanks, that helps us follow up the right way.</span>`:''}</p>
+    ${hot?`<button type="button" class="link" data-act="add-phone">Changed your mind? Add a phone number</button>`:''}
+  </div>`:`<div class="pref">
+    <div class="lbl-sm" id="slotLbl">Prefer a specific time? <span>(optional)</span></div>
+    <div class="chips" role="group" aria-labelledby="slotLbl">${SLOTS.map(x=>`<button type="button" class="chip sm1" data-act="slot" data-v="${x}" aria-pressed="${S.slot===x}">${x}</button>`).join('')}</div>
+    <p class="fine" aria-live="polite" style="min-height:20px">${S.slot?`${ic('checkc',16)}<span>Got it. We\u2019ll call you in the ${S.slot.toLowerCase()}.</span>`:''}</p>
+  </div>`}
+  <div class="spacer"></div>
+  <button class="btn" data-sum="open" style="margin-top:10px">See the design summary</button>
+  <button class="btn ghost" data-act="restart">Restart prototype</button>`;
+};
+
+V['exit-ineligible'] = () => {
+  const t = TYPES.find(x=>x.id===S.type);
+  return `
+  <h1 tabindex="-1">We’re not set up for ${({room:'private rooms',timeshare:'timeshares',other:'this kind of property'})[t.id]} yet</h1>
+  <p class="sub">Evolve focuses on whole homes and condos right now, so we can’t give you an accurate estimate. Thanks for checking with us.</p>
+  ${exitCapture('Want our free guide to hosting on your own?','Send me the guide')}
+  <div class="spacer"></div>
+  <button class="link" data-act="back-type">Actually, it’s a whole home or condo</button>`;
+};
+V['exit-buy'] = () => `
+  <h1 tabindex="-1">Thinking about buying a vacation rental?</h1>
+  <p class="sub">This page is for owners who already have a property. We can send you market insights to help you choose where to buy.</p>
+  ${exitCapture('Get market insights by email','Send me insights')}
+  <div class="spacer"></div>
+  <button class="link" data-act="restart">I already own a property</button>`;
+
+function exitCapture(title,cta){
+  if(S.exitDone) return `<div class="proof">${ic('checkc',18)}<span>Done. Check your inbox.</span></div>`;
+  return `<form id="exitForm" novalidate><h2 class="sec">${title}</h2>
+    <div class="field"><label for="xemail">Email <span style="color:var(--muted);font-weight:400">(optional)</span></label><input id="xemail" type="email" inputmode="email" autocomplete="email" value="${esc(S.exitEmail)}"></div>
+    <button class="btn" type="submit">${cta}</button></form>`;
+}
+
+function mapSvg(){
+  return `<svg viewBox="0 0 390 118" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="390" height="118" fill="#e6ede4"/>
+    <path d="M0 80 C90 60 160 100 250 70 S360 40 390 50" stroke="#fff" stroke-width="9" fill="none"/>
+    <path d="M120 0 L150 118 M280 0 L250 118 M0 30 L390 22" stroke="#fff" stroke-width="5" fill="none"/>
+    <path d="M300 118 C320 95 360 92 390 98 L390 118Z" fill="#cfe0ea"/>
+    <circle cx="195" cy="60" r="22" fill="rgba(138,63,168,.15)"/>
+    <path d="M195 70s-11-9.5-11-17.5a11 11 0 0122 0C206 60.5 195 70 195 70z" fill="#8a3fa8"/>
+    <circle cx="195" cy="52" r="4" fill="#fff"/></svg>`;
+}
+
+/* ---------- Notes (case study rationale) ---------- */
+const NOTES = {
+  type:{t:'Screen out poor fits first, before asking for anything personal',
+    l:[['q','Lead quality']],
+    b:['Today, timeshares, rooms, tents and buyers all go through the full flow and give contact details before they’re turned away.',
+       'Goal and property type are combined into one question. Poor fits get a friendly exit and are never asked for contact details.',
+       'The headline sets expectations: about a minute, with an estimate at the end.']},
+  units:{t:'Spot high-value owners early',
+    l:[['q','Lead quality']],
+    b:['Owners with several properties are the most valuable customers. Count tells sales how big the opportunity is.',
+       'They’re routed to the portfolio team instead of the general sales queue.']},
+  address:{t:'The address is what the estimate is built from',
+    l:[['hot','Address drop-off (30%)']],
+    b:['The ask is framed as something the owner gets back: “we’ll compare it with similar rentals.”',
+       'One autocomplete field instead of a free-text form. Privacy line sits right under it.',
+       'Picking an address shows a map pin right under the field, on the same screen, to catch typos without adding a step.',
+       'Asked while the owner is still engaged and before any contact info, so it’s easier to give.']},
+  beds:{t:'One tap',
+    l:[['','Speed']],
+    b:['Today’s counter starts at 0 and needs a separate Next tap. Chips cover 99% of homes and move on as soon as you tap.',
+       'Explaining why we ask (“the biggest driver of income”) makes it feel useful, not like a form.']},
+  start:{t:'Two questions answered with one tap',
+    l:[['','Fewer steps'],['q','Lead quality']],
+    b:['Combines “Currently renting?” and “Furnished?”. Assumption: a home already rented as a vacation rental is furnished.',
+       'Owners who already rent it out and manage it themselves are the strongest leads: they have proven income and know the work.']},
+  timeline:{t:'The best signal of intent',
+    l:[['q','Routing']],
+    b:['Kept from the live flow. Combined with property data, it decides which path the owner goes down next.',
+       'Asked before any contact info, so routing is ready when they get there.']},
+  estimate:{t:'Give something back before asking',
+    l:[['hot','Contact drop-off (35%)']],
+    b:['The live flow asks for four fields and permission to call and text after 7 taps with nothing in return.',
+       'Here the owner sees a real range first. The details are blurred and “unlocked” with an email, so there’s a clear reason to give it.',
+       'Only name and email here. First and last name stay separate because sales uses them that way today.',
+       'The lead is saved as soon as there’s an email, so someone who leaves at the phone step can be won back by email.']},
+  phone:{t:'Ask for the phone number based on how ready they are',
+    l:[['hot','Contact drop-off (35%)'],['q','Routing']],
+    b:['A separate step, with the number keypad (the live field opens the letter keyboard).',
+       'Fast lane and portfolio: phone is required. The call-time preference is asked after submitting, so the form stays short.',
+       'Explorers: phone is optional. They get the report and follow-up emails instead of an early sales call.',
+       'Fast lane and portfolio still have a quiet way out: \u201cPrefer email? Have a specialist email me instead.\u201d They stay in the hot queue with an email follow-up from a person, instead of leaving with nothing.',
+       'Call and text consent is only asked here, next to the phone field, instead of on the first contact screen.']},
+  done:{t:'Tell them what happens next',
+    l:[['','Show-up rate']],
+    b:['A clear next step makes it more likely the owner picks up when sales calls.',
+       'Call-time preference moved here, after the lead is already captured. On the form it added a choice right where the biggest drop-off happens.',
+       'Plain options (morning, afternoon, evening) instead of slots like \u201ctomorrow afternoon\u201d that read as a booking but aren\u2019t one.',
+       'Skipping it is fine: sales can still call right away.',
+       'Owners who chose email instead of a call get one optional tap: \u201cWhat\u2019s holding you back?\u201d It tells sales how to approach them and tells Evolve why people decline calls. They can still add a number.',
+       'Next to test: a real calendar booking for fast-lane and portfolio owners.']},
+  'exit-ineligible':{t:'A friendly exit instead of a dead end',
+    l:[['q','Lead quality']],
+    b:['Assumption: Evolve supports whole homes and condos only.',
+       'Email is optional, and these owners are never sent to sales.',
+       'A way back covers anyone who tapped the wrong option.']},
+  manual:{t:'A fallback when the link can\u2019t be read',
+    l:[['hot','Address drop-off (30%)'],['','Resilience']],
+    b:['Some listings will be private, delisted or in a format the data source doesn\u2019t support.',
+       'Instead of an error, the owner answers just two things: town and bedrooms. That\u2019s enough for a market estimate on the same results page.',
+       'Sales sees that the link couldn\u2019t be read, so they can look it up on the call.',
+       'If only some links fail, the rest still load. The note offers \u201cEnter its details now\u201d, which adds the missing home to the same estimate.']},
+  'pm-pick':{t:'When the listing belongs to a property manager',
+    l:[['q','Lead quality'],['','Edge case']],
+    b:['An owner who uses a manager pastes a listing that sits on the manager\u2019s account. Pulling every listing would show dozens of homes that aren\u2019t theirs.',
+       'Rule: more than 10 listings on one host means a likely manager. The pasted home is preselected, and search finds any others they own.',
+       'These owners are switch-over leads. The estimate compares against a typical ~25% manager fee (an assumption), so Evolve\u2019s 10% shows up as real money.',
+       'Sales sees the current manager by name.']},
+  listed:{t:'Split owners into two paths on the first question',
+    l:[['q','Routing'],['hot','Both drop-off points']],
+    b:['Owners who already have a listing are the most valuable group: proven income, and they know the work Evolve takes off their hands.',
+       'For them, one pasted link replaces the whole questionnaire, including the address step.',
+       'Owners who aren\u2019t listed yet get the short guided flow.',
+       'Visual: one static, contained photo on this first screen sets the mood (a guest wheeling a suitcase into a vacation home), with the hook \u201cWe host. You earn.\u201d After that there are no rotating photos. Each screen is just the question on white, so the eye goes straight to the answer. Value messages live in one static trust line at the bottom, and the green boxes appear only when they say something about the owner\u2019s answer.']},
+  paste:{t:'One paste instead of seven questions',
+    l:[['hot','Address drop-off (30%)'],['','Speed']],
+    b:['The link gives property type, bedrooms, approximate location, furnished (it’s already live), rating and nightly rate.',
+       'Listings only show an approximate area. Sales can open the listing, and the exact address is confirmed on the call. Asking for it here would bring back the step we’re removing.',
+       'Owners with several homes paste one link: every listing links to the host’s profile, which lists their other homes, so we bring them all in. A link from another site can be added too.',
+       '\u201cI don\u2019t have the link handy\u201d falls back to the guided flow, so no one gets stuck.',
+       'A collapsed \u201cHow do I find my link?\u201d helper covers the share-and-copy step on a phone, which is where most owners will be.',
+       'Assumption: in production the details come from a listing-data provider (e.g. AirDNA) or the listing’s public preview. Here they’re simulated.']},
+  loading:{t:'Show the work',
+    l:[['','Trust']],
+    b:['A short, honest progress list makes the estimate feel earned and personal, not generic.',
+       'It includes looking up the host’s other listings, so owners see why more homes appear.',
+       'A private-room listing is caught here and sent to a friendly exit, never to sales.']},
+  results:{t:'Value first, then ask',
+    l:[['hot','Contact drop-off (35%)'],['q','Lead quality']],
+    b:['Their own listing is shown back to them, so they can see the estimate is about their home.',
+       'If the host has more homes, they all appear with an “Include” tickbox (one may be co-hosted or not up for management). The estimate and routing update live. Two or more go to the portfolio team.',
+       'Take-home is shown after Evolve’s 10% fee, next to what they likely make today. For self-managers the money can come out about the same, so time back is shown as its own line. That honesty builds trust, and the full math is one tap away.',
+       'What Evolve covers and the fees sit right under the estimate, to explain the fee before anyone is asked to commit.',
+       'Contact is last: name, email and phone (these are the best leads). The call-time preference is asked after they submit. “Prefer email?” keeps people who aren’t ready from leaving.',
+       'A sticky “Talk to a specialist” button jumps to the form from anywhere on the page.']},
+  'exit-listing':{t:'Screen out poor fits automatically',
+    l:[['q','Lead quality']],
+    b:['The listing data shows it’s a private room. The owner wasn’t asked anything and isn’t sent to sales.']},
+  'exit-buy':{t:'Not a seller lead yet, but could be one later',
+    l:[['q','Lead quality']],
+    b:['Buyers are future owners. They go to a market-insights email list instead of the owner sales queue.']}
+};
+
+function renderNotes(){
+  const n = NOTES[S.step]; const L = lane(); const sc = score();
+  const st = STARTS.find(x=>x.id===S.start);
+  const row = (k,v) => `<dt>${k}</dt><dd class="${v?'':'empty'}">${v?esc(v):'—'}</dd>`;
+  const laneTxt = {
+    fast:['fast','Fast lane → specialist call, booked time'],
+    port:['port','Portfolio → dedicated portfolio team'],
+    exp:['exp','Explorer → emailed report and follow-ups; call optional'],
+    out:['out','Poor fit → not sent to sales'],
+    buy:['out','Buyer → insights email list, not sent to sales']
+  }[L];
+  document.getElementById('notes').innerHTML = `
+    <button type="button" class="sum-open" data-sum="open">${ic('doc',18)} Open design summary</button>
+    <div style="display:flex;align-items:flex-start">
+      <h2>Try these scenarios</h2>
+      <button class="iconbtn close-notes" id="closeNotes" aria-label="Close notes" style="width:36px;height:36px;margin-top:-10px">${ic('x',18)}</button>
+    </div>
+    <div class="scen">${SCENARIOS.map(([id,t,d])=>`<button type="button" data-scen="${id}">${t}<small>${d}</small></button>`).join('')}</div>
+    <p class="scen-tip">Guided flow addresses: try Asheville, Destin, Tahoe, Gatlinburg, Scottsdale, Park City, Hyannis or Galveston. On the paste screen, clicking an empty link field fills a demo link.</p>
+    <div class="divider"></div>
+    ${S.step==='listed'?`<h2>Starting questions</h2>
+    <div class="sq">
+      <p class="q">1. Who is the most valuable customer?</p>
+      <p>Owners of whole homes or condos who are likely to sign and stay. The strongest signals: already hosting (self-managed, or ready to switch from another manager), in a market Evolve already serves, and ready to start within a few months. Owners with several homes are worth the most over time.</p>
+      <p class="q">2. What\u2019s the main metric?</p>
+      <p>Call requests: the share of owners who start the flow and finish by asking a specialist to call them. That\u2019s the moment a visitor becomes a real sales conversation.</p>
+      <p><b>Supporting metric:</b> RFI completion rate, including email-only leads (today about one in three owners finish).</p>
+      <p><b>Guardrail:</b> lead quality, meaning how many calls sales accepts, how many owners sign up and how many are still with Evolve after a year.</p>
+      <p class="q">3. How can I build trust along the way?</p>
+      <p>Give before asking, explain every ask and keep the numbers honest:</p>
+      <ul class="sq-list">
+        <li><b>Value first:</b> owners see their estimate before anyone asks for a phone number.</li>
+        <li><b>Every ask has a reason:</b> the address powers the estimate and comes with a privacy line; bedrooms are \u201cthe biggest driver of income\u201d.</li>
+        <li><b>Their home, reflected back:</b> on the listed path they see their own listing, rating and nightly rate.</li>
+        <li><b>Honest numbers:</b> take-home after Evolve\u2019s fee, \u201can estimate, not a guarantee\u201d, and the full math one tap away.</li>
+        <li><b>Proof they can check:</b> \u201c4.8\u2605 verified reviews\u201d links to independent reviews, and \u201cwe already host guests in your town\u201d appears only when it\u2019s true.</li>
+        <li><b>Low pressure:</b> consent to calls appears only next to the phone field, there\u2019s always an email-only option, and every exit is friendly.</li>
+        <li><b>No surprises:</b> each confirmation says exactly what happens next and when.</li>
+      </ul>
+    </div>
+    <div class="divider"></div>`:''}
+    <h2>Why this step</h2>
+    <h3>${n.t}</h3>
+    <div>${n.l.map(([c,t])=>`<span class="lever ${c}">${t}</span>`).join('')}</div>
+    <ul>${n.b.map(x=>`<li>${x}</li>`).join('')}</ul>
+    <div class="divider"></div>
+    <h2>Lead profile (what sales sees)</h2>
+    <dl class="prof">${S.path==='yes' ? profileYes(row) : `
+      ${row('Property type', S.type ? TYPES.find(t=>t.id===S.type).label.replace(/^A (.)/,(m,c)=>c.toUpperCase()) + (S.units?` (${S.units})`:'') : '')}
+      ${row('Address', S.addr ? S.addr.line + (S.unit?', '+S.unit:'') + (S.addr.city?', '+S.addr.city:'') : '')}
+      ${row('Bedrooms', S.beds ? (S.beds==='studio'?'Studio':S.beds) : '')}
+      ${row('Currently renting', st?st.renting:'')}
+      ${row('Furnished', st?st.furn:'')}
+      ${row('Timeline', S.timeline ? TIMES.find(t=>t.id===S.timeline).label : '')}
+      ${row('Name', (S.first||S.last) ? (S.first+' '+S.last).trim() : '')}
+      ${row('Email', S.email)}
+      ${row('Phone', phoneTxt())}
+      ${S.reason?row('Why no call', S.reason):''}
+      ${S.slot?row('Call time', S.slot):''}`}
+    </dl>
+    <div class="meter" role="img" aria-label="Fit score ${sc} out of 100"><i style="width:${sc}%"></i></div>
+    <div class="scoreline"><span>Fit score</span><span>${sc} / 100</span></div>
+    ${laneTxt?`<div class="lane ${laneTxt[0]}">${laneTxt[1]}</div>`:`<div class="lane">${S.path==='yes'?'Path decided once the listing is read':'Path decided after the timeline question'}</div>`}
+    <button class="restart" data-act="restart">Restart prototype</button>
+    ${S.path==='yes'?'':`<p class="fine" style="margin-top:14px">Scoring: whole home +20, multiple +30 · 2–3 bedrooms +15, 4+ +20 · market we serve +10 · renting it, self-managed +25, with a manager +20, furnished +15, unfurnished +5 · as soon as possible +25, within 3 months +20, 3–6 months +8. 60 or more goes to the fast lane, unless they\u2019re just exploring. All weights are placeholders, to be set from closed-won data.</p>`}
+    ${S.path==='yes'?`<p class="fine" style="margin-top:14px">Listed path: already hosting +25, live now +25, whole home +20, bedrooms +5 to +20, rating 4.7+ +10, more than one listing +10. One eligible listing goes to the fast lane; two or more go to the portfolio team. Weights are placeholders.</p>`:''}`;
+}
+function phoneTxt(){
+  if(!S.phoneSkipped) return S.phone;
+  const L = lane(); return (L==='fast'||L==='port') ? 'Declined, email follow-up' : 'Skipped (email only)';
+}
+function profileYes(row){
+  const ok = used(), l = ok[0];
+  const plats = [...new Set(S.listings.map(x=>x.platform))].join(', ');
+  const e = ok.length ? estimateYes() : null;
+  return `
+      ${row('Source', S.listings.length && S.listings.every(x=>x.manual) ? 'Link unreadable \u2192 details entered' : S.listings.some(x=>x.manual) ? `${S.listings.filter(x=>!x.manual).length} read from links + ${S.listings.filter(x=>x.manual).length} entered by owner` : S.pm && S.listings.length ? `${S.listings.length} of ${S.pm.count} homes on ${S.pm.name}\u2019s account` : S.listings.length ? `${S.links.length} link${S.links.length>1?'s':''} → ${S.listings.length} listing${S.listings.length>1?'s':''} found (${plats})` : '')}
+      ${row('Homes included', S.listings.length ? `${ok.length} of ${S.listings.length}` : '')}
+      ${row('Property type', l ? l.kind + (ok.length>1?` + ${ok.length-1} more`:'') : (S.listings.length?'Private room (not eligible)':''))}
+      ${row('Bedrooms', l ? l.beds : '')}
+      ${row('Location', l ? 'Near '+l.city : '')}
+      ${row('Exact address', l ? 'Confirm on call' : '')}
+      ${S.pm?row('Current manager', S.pm.name+' (switch-over lead)'):''}
+      ${row('Currently renting', l ? (l.manual?'Yes (listing couldn\u2019t be read)':S.pm?'Yes, via '+S.pm.name:'Yes, listed on '+l.platform) : '')}
+      ${row('Furnished', l ? 'Yes (listing is live)' : '')}
+      ${row('Guest rating', l && !l.manual ? `${l.rating.toFixed(2)} (${l.reviews} reviews)` : '')}
+      ${row('Revenue today (est.)', e ? '$'+e.gross+'k / yr' : '')}
+      ${row('Timeline', l ? 'Already hosting' : '')}
+      ${row('Name', (S.first||S.last) ? (S.first+' '+S.last).trim() : '')}
+      ${row('Email', S.email)}
+      ${row('Phone', phoneTxt())}
+      ${S.reason?row('Why no call', S.reason):''}
+      ${S.slot?row('Call time', S.slot):''}`;
+}
+
+const CAPS = {manual:'Over 30,000 owners trust Evolve','pm-pick':'Industry-low fees starting at 10%',listed:'Industry-low fees starting at 10%',paste:'Over 30,000 owners trust Evolve',loading:'Smarter pricing for more bookings','exit-listing':'Thanks for checking with Evolve',type:'Owners earn up to 18% more than the market',units:'Dedicated portfolio support',address:'Owners earn up to 18% more than the market',beds:'Listed everywhere guests are looking',start:'Use your own cleaner or our vetted partners',timeline:'No long-term contract required',estimate:'$1M liability coverage on every booking',phone:'4.8\u2605 verified reviews',done:'Welcome your first guest faster','exit-ineligible':'Thanks for checking with Evolve','exit-buy':'Thanks for checking with Evolve'};
+const WELCOME_SVG = `<div class="welcome photo" role="img" aria-label="We host. You earn. Up to 18% more than the market. Photo: a guest wheeling a suitcase into a modern vacation home.">
+  <img src="hero.jpg" alt="" width="1040" height="581">
+  <div class="tagline" aria-hidden="true"><b>We host.</b><b class="earn">You earn.</b><span>Up to 18% more than the market</span></div>
+</div>`;
+const SCENARIOS = [
+  ['single','One listing','Asheville cabin'],
+  ['multi','Host with 3 homes','One link finds all'],
+  ['pm','Property manager','48 homes, pick yours'],
+  ['partial','One link fails','Cabin + unreadable link'],
+  ['unreadable','Unreadable link','Fallback to 2 questions'],
+  ['room','Private room','Poor fit, friendly exit'],
+  ['guided','Not listed yet','Guided questions'],
+  ['buy','Looking to buy','Buyer exit']
+];
+const SCEN_LINKS = {single:['https://www.airbnb.com/rooms/48213907'], multi:['https://www.airbnb.com/rooms/12345678'], pm:['https://www.vrbo.com/77777777'], partial:['https://www.airbnb.com/rooms/48213907','https://www.airbnb.com/rooms/404'], unreadable:['https://www.airbnb.com/rooms/404'], room:['https://www.airbnb.com/rooms/30177452']};
+function openSummary(push){
+  const el=document.getElementById('summary'); el.hidden=false; closeNotes();
+  if(push!==false){ try{ if(location.hash!=='#summary') location.hash='summary'; }catch(e){} }
+  el.scrollTop=0; const h=document.getElementById('sumTitle'); if(h) h.focus({preventScroll:true});
+}
+function closeSummary(push){
+  const el=document.getElementById('summary'); if(el.hidden) return; el.hidden=true;
+  if(push!==false){ try{ if(location.hash==='#summary') location.hash='flow'; }catch(e){} }
+}
+function runScenario(id){
+  closeSummary();
+  S = blank(); closeNotes();
+  if(id==='guided'){ S.path='no'; S.hist=['listed']; S.step='type'; }
+  else if(id==='buy'){ S.hist=['listed']; S.step='exit-buy'; }
+  else { S.path='yes'; S.links=[...SCEN_LINKS[id]]; S.hist=['listed','paste']; S.step='loading'; }
+  render(true);
+}
+/* ---------- Render ---------- */
+let lastStep=null, loadTimer=null, io=null;
+function render(focus){
+  const scr = document.getElementById('screen');
+  scr.innerHTML = V[S.step]();
+  if(lastStep!==S.step) document.getElementById('body').scrollTop = 0;
+  lastStep = S.step;
+  const ws=document.getElementById('welcomeSlot'); const wantW = S.step==='listed';
+  if(wantW && !ws.firstChild) ws.innerHTML=WELCOME_SVG; if(!wantW) ws.innerHTML='';
+  ws.hidden=!wantW;
+  document.getElementById('trust').hidden = ['results','loading','done'].includes(S.step);
+  document.getElementById('backBtn').hidden = !S.hist.length || S.step==='done' || S.step==='loading';
+  // progress
+  const ph = PHASE[S.step];
+  const P = S.path==='yes' ? P0Y : P0;
+  let p0 = ph>0 ? 1 : (Math.max(0,P.indexOf(S.step==='units'?'type':S.step))+ (S.step==='units'?.5:0)+1) / (P.length+1);
+  if(S.step.startsWith('exit')) p0 = .2;
+  const fills = [p0, ph===1?.5:(ph>1?1:0), S.step==='done'?1:(ph===2?.5:0)];
+  fills.forEach((f,i)=>{ const seg=document.getElementById('seg'+i); seg.querySelector('i').style.width=(f*100)+'%'; seg.classList.toggle('on', i<=ph); });
+  renderNotes();
+  if(S.step==='address') bindAddress();
+  if(io){ io.disconnect(); io=null; }
+  if(S.step==='results'){
+    const cap=document.getElementById('capture'), st=document.getElementById('stickyCta');
+    if('IntersectionObserver' in window){ io=new IntersectionObserver(es=>{ st.classList.toggle('gone', es[0].isIntersecting); },{root:document.getElementById('body'),threshold:.05}); io.observe(cap); }
+  }
+  clearTimeout(loadTimer);
+  if(S.step==='loading') loadTimer=setTimeout(finishLookup, 3200);
+  if(focus){ const h=scr.querySelector('h1'); if(h) h.focus({preventScroll:true}); }
+}
+
+function finishLookup(){
+  if(S.step!=='loading') return;
+  const seen = new Set();
+  const res = S.links.map(x=>x.trim()).filter(Boolean).map(lookup);
+  S.failedLinks = res.filter(r=>r.failed).length;
+  const pmRes = res.find(r=>r.pm);
+  S.listings = res.filter(r=>!r.failed && !r.pm).flatMap(r=>r.listings).filter(l=>!seen.has(l.id) && seen.add(l.id)).map(l=>({...l, include:l.whole}));
+  if(pmRes){
+    S.pm = pmRes.pm; S.pmPool = pmRes.listings; S.pmSel=[0]; S.pmQ=''; S.extra = S.listings; S.listings=[];
+    S.step='pm-pick';
+  } else if(!S.listings.length && S.failedLinks){ S.step='manual'; S.failedLinks=0; }
+  else S.step = S.listings.some(l=>l.whole) ? 'results' : 'exit-listing';
+  render(true);
+}
+function syncLead(){
+  ['first','last','email','phone'].forEach(k=>{ const el=document.getElementById(k); if(el) S[k]=el.value.trim(); });
+}
+function syncLinks(){ document.querySelectorAll('.linkin').forEach(el=>{ S.links[+el.dataset.i]=el.value; }); }
+
+function pick(field,val,delay=180){
+  S[field]=val; render();
+  setTimeout(advance, delay);
+}
+
+/* ---------- Address combobox ---------- */
+function bindAddress(){
+  const inp = document.getElementById('addr'), lb = document.getElementById('addrList');
+  let items=[], active=-1;
+  function show(){
+    const q = inp.value.trim().toLowerCase(); S.addrText = inp.value;
+    if(q.length<2){ lb.hidden=true; inp.setAttribute('aria-expanded','false'); return; }
+    const words = q.split(/\s+/);
+    items = ADDRS.filter(a=>words.every(w=>a.full.toLowerCase().includes(w))).slice(0,5);
+    if(!items.length && q.length>=6) items=[{line:inp.value.trim(),city:null,zip:'',full:inp.value.trim(),manual:true}];
+    active = items.length?0:-1;
+    lb.innerHTML = items.map((a,i)=>`<li role="option" id="opt${i}" data-i="${i}" aria-selected="${i===active}">${a.manual?`Use “${esc(a.line)}”<small>We couldn’t find it. A specialist will confirm it.</small>`:`${esc(a.line)}<small>${esc(a.city)} ${esc(a.zip)}</small>`}</li>`).join('');
+    lb.hidden = !items.length; inp.setAttribute('aria-expanded', String(!!items.length));
+    if(active>=0) inp.setAttribute('aria-activedescendant','opt0');
+  }
+  function mark(){ [...lb.children].forEach((li,i)=>li.setAttribute('aria-selected',String(i===active))); inp.setAttribute('aria-activedescendant','opt'+active); }
+  function choose(i, byKey){ S.addr = items[i]; S.addrText = items[i].full; S.errors={}; render(); setTimeout(()=>{ const b=document.querySelector('[data-act="addr-ok"]'); if(b){ b.scrollIntoView({block:'nearest'}); if(byKey) b.focus({preventScroll:true}); } },40); }
+  inp.addEventListener('input', ()=>{ if(S.addr){ S.addr=null; S.unit=''; document.getElementById('addrConfirm').innerHTML=''; } show(); });
+  inp.addEventListener('keydown', e=>{
+    if(lb.hidden) { if(e.key==='Enter'){ e.preventDefault(); S.errors.addr='Pick an address from the list.'; render(); document.getElementById('addr').focus(); } return; }
+    if(e.key==='ArrowDown'){ e.preventDefault(); active=Math.min(items.length-1,active+1); mark(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); active=Math.max(0,active-1); mark(); }
+    else if(e.key==='Enter'){ e.preventDefault(); if(active>=0) choose(active, true); }
+    else if(e.key==='Escape'){ lb.hidden=true; inp.setAttribute('aria-expanded','false'); }
+  });
+  lb.addEventListener('mousedown', e=>{ const li=e.target.closest('li'); if(li){ e.preventDefault(); choose(+li.dataset.i);} });
+  if(!S.addr) setTimeout(()=>{ inp.focus(); const v=inp.value; inp.value=''; inp.value=v; if(v) show(); }, 30);
+}
+
+/* ---------- Events ---------- */
+const fmtPhone = v => { const d=v.replace(/\D/g,'').slice(-10).slice(0,10); if(d.length<4) return d; if(d.length<7) return `(${d.slice(0,3)}) ${d.slice(3)}`; return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; };
+
+/* Demo autofill: clicking an empty listing field fills a sample link (first field gets the demo link, extra fields get neighbors) */
+const DEMO_LINK = 'https://www.airbnb.com/rooms/12345678';
+document.addEventListener('click', e=>{
+  const inp = e.target.closest && e.target.closest('.linkin');
+  if(!inp || inp.value.trim()) return;
+  const i = +inp.dataset.i;
+  inp.value = i===0 ? DEMO_LINK : `https://www.airbnb.com/rooms/${12345678+i}`;
+  inp.dispatchEvent(new Event('input',{bubbles:true}));
+  inp.setSelectionRange(inp.value.length, inp.value.length);
+});
+
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const a=b.dataset.act, v=b.dataset.v;
+  if(a==='path'){ S.path=v; render(); setTimeout(()=>go(v==='yes'?'paste':'type'),180); }
+  else if(a==='add-link'){ syncLinks(); S.links.push(''); render(); const ins=document.querySelectorAll('.linkin'); ins[ins.length-1].focus(); }
+  else if(a==='rm-link'){ syncLinks(); S.links.splice(+v,1); S.linkErr={}; render(); }
+  else if(a==='sample'){ syncLinks(); let i = S.links.length===1 ? 0 : S.links.findIndex(x=>!x.trim()); if(i<0){ if(S.links.length<10){ S.links.push(''); i=S.links.length-1; } else i=0; } S.links[i]=v; delete S.linkErr[i]; render(); }
+  else if(a==='no-link'){ S.path='no'; go('type'); }
+  else if(a==='edit-links'){ S.listings=[]; S.pm=null; S.pmPool=[]; S.failedLinks=0; S.errors={}; S.hist=['listed']; S.step='paste'; S.exitDone=false; render(true); }
+  else if(a==='fix-failed'){ syncLead(); S.keep = S.listings; S.mTown=''; S.mBeds=null; go('manual'); }
+  else if(a==='mbeds'){ const t=document.getElementById('town'); if(t) S.mTown=t.value; S.mBeds=v; delete S.errors.mbeds; render(); }
+  else if(a==='pm-go'){
+    if(!S.pmSel.length){ S.errors={pm:'Tick at least one home'}; render(); return; }
+    S.errors={}; S.listings = S.pmSel.map(i=>({...S.pmPool[i], include:true})).concat(S.extra||[]);
+    go('results');
+  }
+  else if(a==='to-capture'){ const c=document.getElementById('capture'); c.scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>document.getElementById('first').focus({preventScroll:true}),400); }
+  else if(a==='toggle-email'){ syncLead(); S.emailOnly=!S.emailOnly; S.errors={}; render(); }
+  else if(a==='type'){ const t=TYPES.find(x=>x.id===v); S.type=v; render(); setTimeout(()=>go(t.ok? nextOf('type') : 'exit-ineligible'),180); }
+  else if(a==='buy'){ S.type=null; go('exit-buy'); }
+  else if(a==='back-type'){ S.hist=['listed']; S.step='type'; S.type=null; S.exitDone=false; render(true); }
+  else if(a==='units') pick('units',v);
+  else if(a==='beds') pick('beds',v);
+  else if(a==='start') pick('start',v);
+  else if(a==='timeline') pick('timeline',v,220);
+  else if(a==='addr-ok'){ const u=document.getElementById('unit'); S.unit=u?u.value.trim():''; advance(); }
+  else if(a==='slot'){ S.slot = S.slot===v?null:v; syncLead(); render(); }
+  else if(a==='skip-phone'){ S.phoneSkipped=true; S.phone=''; S.errors={}; go('done'); }
+  else if(a==='reason'){ S.reason = S.reason===v?null:v; render(); }
+  else if(a==='add-phone'){ S.phoneSkipped=false; S.emailOnly=false; S.reason=null; S.step = S.path==='yes' ? 'results' : 'phone'; render(true); if(S.path==='yes'){ setTimeout(()=>{ const c=document.getElementById('capture'); if(c) c.scrollIntoView({block:'start'}); const ph=document.getElementById('phone'); if(ph) ph.focus({preventScroll:true}); },50); } }
+  else if(a==='restart'){ S=blank(); closeNotes(); render(true); }
+});
+
+document.addEventListener('submit', e=>{
+  e.preventDefault();
+  const f=e.target;
+  if(f.id==='emailForm'){
+    S.first=f.first.value.trim(); S.last=f.last.value.trim(); S.email=f.email.value.trim();
+    const er={};
+    if(!S.first) er.first='Add your first name';
+    if(!S.last) er.last='Add your last name';
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(S.email)) er.email='Enter a valid email, like name@example.com';
+    if(Object.keys(er).length){ S.errors=er; render(); const bad=document.querySelector('[aria-invalid="true"]'); if(bad) bad.focus(); return; }
+    advance();
+  } else if(f.id==='phoneForm'){
+    S.phone=f.phone.value;
+    if(S.phone.replace(/\D/g,'').length!==10){ S.errors={phone:'Enter a 10-digit US phone number'}; render(); document.getElementById('phone').focus(); return; }
+    S.phoneSkipped=false; advance();
+  } else if(f.id==='pasteForm'){
+    syncLinks();
+    const er={}; let any=false;
+    S.links.forEach((v,i)=>{ const t=v.trim(); if(!t){ if(i===0) er[i]='Paste a link to your listing'; return; } any=true; if(!platformOf(t)) er[i]='That doesn’t look like an Airbnb, Vrbo or Booking.com link'; });
+    if(!any && !er[0]) er[0]='Paste a link to your listing';
+    S.linkErr=er;
+    if(Object.keys(er).length){ render(); const bad=document.querySelector('.linkin[aria-invalid="true"]'); if(bad) bad.focus(); return; }
+    S.links = S.links.filter(x=>x.trim()); go('loading');
+  } else if(f.id==='manualForm'){
+    S.mTown = f.town.value.trim(); const er={};
+    if(!S.mTown) er.town='Add the town or zip code';
+    if(!S.mBeds) er.mbeds='Pick the number of bedrooms';
+    if(Object.keys(er).length){ S.errors=er; render(); return; }
+    const city = Object.keys(MARKETS).find(c=>c.toLowerCase().startsWith(S.mTown.toLowerCase().split(',')[0])) || S.mTown;
+    const m = manualListing(city,S.mBeds);
+    if(S.keep){ m.id='manual'+S.keep.length; S.listings=[...S.keep, m]; S.keep=null; S.failedLinks=Math.max(0,S.failedLinks-1); S.errors={}; S.hist.pop(); S.step='results'; render(true); return; }
+    S.errors={}; S.listings=[m]; go('results');
+  } else if(f.id==='leadForm'){
+    syncLead();
+    const er={};
+    if(!S.first) er.first='Add your first name';
+    if(!S.last) er.last='Add your last name';
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(S.email)) er.email='Enter a valid email, like name@example.com';
+    if(!S.emailOnly && S.phone.replace(/\D/g,'').length!==10) er.phone='Enter a 10-digit US phone number';
+    if(Object.keys(er).length){ S.errors=er; render(); const bad=document.querySelector('#leadForm [aria-invalid="true"]'); if(bad) bad.focus(); return; }
+    S.phoneSkipped = S.emailOnly; if(S.emailOnly){ S.phone=''; S.slot=null; }
+    go('done');
+  } else if(f.id==='exitForm'){
+    S.exitEmail=f.xemail.value.trim(); S.exitDone=true; render();
+  }
+});
+
+document.addEventListener('change', e=>{
+  const pmc = e.target.closest && e.target.closest('[data-pm]');
+  if(pmc){ const i=+pmc.dataset.pm; S.pmSel = pmc.checked ? [...new Set([...S.pmSel,i])] : S.pmSel.filter(x=>x!==i); delete S.errors.pm;
+    const btn=document.querySelector('[data-act="pm-go"]'); if(btn) btn.textContent=`Continue with ${S.pmSel.length} home${S.pmSel.length===1?'':'s'}`; renderNotes(); return; }
+  const c = e.target.closest && e.target.closest('[data-incl]'); if(!c) return;
+  S.listings[+c.dataset.incl].include = c.checked; syncLead();
+  const y = document.getElementById('body').scrollTop; render(); document.getElementById('body').scrollTop = y;
+  const again = document.querySelector(`[data-incl="${c.dataset.incl}"]`); if(again) again.focus({preventScroll:true});
+});
+document.addEventListener('input', e=>{
+  if(e.target.id==='phone'){ const el=e.target, atEnd = el.selectionStart===el.value.length; el.value=fmtPhone(el.value); S.phone=el.value; if(atEnd) el.setSelectionRange(el.value.length,el.value.length); }
+  if(e.target.id==='unit') S.unit=e.target.value;
+  if(e.target.id==='pmq'){ S.pmQ=e.target.value; document.getElementById('pmlist').innerHTML=pmRows(); }
+  if(e.target.id==='town' && S.errors.town){ delete S.errors.town; e.target.removeAttribute('aria-invalid'); const er=e.target.closest('.field').querySelector('.err'); if(er) er.remove(); }
+  if(e.target.classList && e.target.classList.contains('linkin')){ const i=+e.target.dataset.i; S.links[i]=e.target.value; if(S.linkErr[i]){ delete S.linkErr[i]; e.target.removeAttribute('aria-invalid'); const er=e.target.closest('.field').querySelector('.err'); if(er) er.remove(); } }
+  if(['first','last','email','phone'].includes(e.target.id) && e.target.getAttribute('aria-invalid')){ e.target.removeAttribute('aria-invalid'); const er=e.target.closest('.field').querySelector('.err'); if(er) er.remove(); delete S.errors[e.target.id]; }
+});
+
+document.getElementById('backBtn').addEventListener('click', back);
+
+/* Mobile notes sheet */
+let scrim=null;
+function openNotes(){ const n=document.getElementById('notes'); n.classList.add('open'); scrim=document.createElement('div'); scrim.className='scrim'; scrim.addEventListener('click',closeNotes); document.body.appendChild(scrim); document.getElementById('notesBtn').setAttribute('aria-expanded','true'); }
+function closeNotes(){ document.getElementById('notes').classList.remove('open'); if(scrim){scrim.remove();scrim=null;} document.getElementById('notesBtn').setAttribute('aria-expanded','false'); }
+document.getElementById('notesBtn').addEventListener('click', openNotes);
+document.getElementById('notes').addEventListener('click', e=>{ if(e.target.closest('#closeNotes')) closeNotes(); const sc=e.target.closest('[data-scen]'); if(sc) runScenario(sc.dataset.scen); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeNotes(); });
+
+document.getElementById('sumScen').innerHTML = SCENARIOS.map(([id,t,d])=>`<button type="button" data-scen="${id}">${t}<small>${d}</small></button>`).join('') + `<button type="button" data-sum="restart">Start from the beginning<small>First screen</small></button>`;
+document.addEventListener('click', e=>{
+  const sb=e.target.closest('[data-sum]'); if(sb){ const a=sb.dataset.sum;
+    if(a==='open') openSummary(); else if(a==='close') closeSummary(); else if(a==='restart'){ closeSummary(); S=blank(); render(true); } return; }
+  const sc=e.target.closest('#summary [data-scen]'); if(sc) runScenario(sc.dataset.scen);
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !document.getElementById('summary').hidden) closeSummary(); });
+function route(){ let h=''; try{ h=location.hash; }catch(e){} if(h==='#summary') openSummary(false); else closeSummary(false); }
+window.addEventListener('hashchange', route);
+render(false);
+route();
+})();
+</script>
+</body>
+</html>
